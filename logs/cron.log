@@ -1,0 +1,46 @@
+2026-01-05 18:33:41 - Starting automated data fetch
+2026-01-05 18:33:41 - Running data fetcher with database integration
+Starting Train Delay Data Fetcher...
+Failed to connect to database: connection to server at "localhost" (::1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+Fetching real-time data...
+Error fetching from Entur API: HTTPSConnectionPool(host='api.entur.org', port=443): Max retries exceeded with url: /realtime/v1/gtfs-rt/trip-updates (Caused by NameResolutionError("HTTPSConnection(host='api.entur.org', port=443): Failed to resolve 'api.entur.org' ([Errno 8] nodename nor servname provided, or not known)"))
+Falling back to mock data...
+Saving raw delays to database...
+Traceback (most recent call last):
+  File "/Users/ugurcenar/Documents/Projects/togforsinkelser/data_fetcher.py", line 505, in <module>
+    main()
+  File "/Users/ugurcenar/Documents/Projects/togforsinkelser/data_fetcher.py", line 484, in main
+    fetcher.save_raw_delays_to_database(raw_data)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'TrainDelayFetcher' object has no attribute 'save_raw_delays_to_database'
+2026-01-05 18:33:44 - ERROR: Data fetch failed with exit code 1
+2026-01-05 18:34:00 - Starting automated data fetch
+2026-01-05 18:34:00 - Running data fetcher with database integration
+  File "/Users/ugurcenar/Documents/Projects/togforsinkelser/data_fetcher.py", line 123
+    try:
+        ^
+IndentationError: unindent does not match any outer indentation level
+2026-01-05 18:34:00 - ERROR: Data fetch failed with exit code 1
+2026-01-05 18:34:09 - Starting automated data fetch
+2026-01-05 18:34:09 - Running data fetcher with database integration
+Starting Train Delay Data Fetcher...
+Failed to connect to database: connection to server at "localhost" (::1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+connection to server at "localhost" (127.0.0.1), port 5432 failed: Connection refused
+	Is the server running on that host and accepting TCP/IP connections?
+
+Fetching real-time data...
+Error fetching from Entur API: HTTPSConnectionPool(host='api.entur.org', port=443): Max retries exceeded with url: /realtime/v1/gtfs-rt/trip-updates (Caused by NameResolutionError("HTTPSConnection(host='api.entur.org', port=443): Failed to resolve 'api.entur.org' ([Errno 8] nodename nor servname provided, or not known)"))
+Falling back to mock data...
+Saving raw delays to database...
+Processing data...
+Saving processed statistics to database...
+Database not available, skipping database save.
+Generating JSON files...
+JSON files generated in tmp/
+Data fetcher completed successfully!
+2026-01-05 18:34:11 - Data fetch completed successfully

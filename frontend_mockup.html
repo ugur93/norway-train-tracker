@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Togforsinkelses Dashboard - Frontend Mockup</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .view-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .view-btn {
+            background: #f0f0f0;
+            border: none;
+            padding: 1rem 2rem;
+            margin: 0 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .view-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .view-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .view-btn.active:hover {
+            background: #5a6fd8;
+        }
+
+        /* Sub-tabs for station views */
+        .sub-tabs {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .sub-tab-btn {
+            background: none;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            color: #666;
+        }
+
+        .sub-tab-btn.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .sub-tab-btn:hover {
+            color: #667eea;
+            background: #f8f9fa;
+        }
+
+        /* View Controls */
+        .view-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .time-filter, .sort-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .time-filter label, .sort-controls label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .time-select, .sort-select {
+            padding: 0.5rem 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+
+        .time-select:focus, .sort-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .time-selector {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .time-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .time-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .time-btn:hover {
+            background: #e9ecef;
+        }
+
+        .time-btn.active:hover {
+            background: #5a6fd8;
+        }
+
+        .chart-placeholder {
+            height: 300px;
+            background: linear-gradient(45deg, #f8f9fa 25%, transparent 25%),
+                        linear-gradient(-45deg, #f8f9fa 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #f8f9fa 75%),
+                        linear-gradient(-45deg, transparent 75%, #f8f9fa 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            border: 2px dashed #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 1.1rem;
+            position: relative;
+        }
+
+        /* Chart Mockup Styles */
+        .mockup-chart {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            position: relative;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .chart-y-axis {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 30px;
+            font-size: 0.8rem;
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .chart-area {
+            flex: 1;
+            position: relative;
+            border-left: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 30px;
+        }
+
+        .chart-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
+
+        .grid-line {
+            border-top: 1px solid #f0f0f0;
+            height: 20%;
+        }
+
+        .chart-x-axis {
+            position: absolute;
+            bottom: -25px;
+            left: 40px;
+            right: 0;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* Bar Chart Styles */
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            height: 100%;
+            padding-bottom: 20px;
+        }
+
+        .bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 2px;
+        }
+
+        .bar {
+            width: 100%;
+            max-width: 30px;
+            border-radius: 3px 3px 0 0;
+            transition: opacity 0.3s ease;
+            position: relative;
+        }
+
+        .bar:hover {
+            opacity: 0.8;
+        }
+
+        .bar-label {
+            font-size: 0.7rem;
+            color: #666;
+            text-align: center;
+            margin-top: 5px;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            white-space: nowrap;
+            max-height: 60px;
+            overflow: hidden;
+        }
+
+        /* Line Chart Styles */
+        .line-chart {
+            position: relative;
+            height: 100%;
+            padding-bottom: 20px;
+        }
+
+        .line-series {
+            position: relative;
+        }
+
+        .data-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+        }
+
+        .data-point:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            z-index: 10;
+        }
+
+        .data-point:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 120%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .bar:hover::after {
+            content: attr(title);
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .line-path {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Chart Legend */
+        .chart-legend {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .legend-line {
+            width: 20px;
+            height: 2px;
+            border-radius: 1px;
+        }
+
+        .station-delays-view,
+        .route-averages-view {
+            display: none;
+        }
+
+        .station-delays-view.active,
+        .route-averages-view.active {
+            display: block;
+        }
+
+        .station-list {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .station-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .station-card.delayed {
+            border-left-color: #ffc107;
+        }
+
+        .station-card.severe-delay {
+            border-left-color: #dc3545;
+        }
+
+        .station-info h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .station-details {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+
+        .delay-info {
+            text-align: right;
+        }
+
+        .delay-minutes {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .station-card.delayed .delay-minutes {
+            color: #ffc107;
+        }
+
+        .station-card.severe-delay .delay-minutes {
+            color: #dc3545;
+        }
+
+        .delay-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+
+        .station-pair-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #28a745;
+        }
+
+        .station-pair-card.delayed {
+            border-left-color: #ffc107;
+        }
+
+        .station-pair-card.severe-delay {
+            border-left-color: #dc3545;
+        }
+
+        .station-pair-info h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .station-pair-details {
+            color: #6c757d;
+            font-size: 0.85rem;
+        }
+
+        .station-pair-card.delayed .delay-minutes {
+            color: #ffc107;
+        }
+
+        .station-pair-card.severe-delay .delay-minutes {
+            color: #dc3545;
+        }
+
+        .route-cards {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .route-card {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .route-card:nth-child(2) {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .route-info h3 {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .route-stats {
+            text-align: right;
+        }
+
+        .route-delay {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .route-details {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        /* Analytics View Styles */
+        .analytics-view {
+            display: none;
+        }
+
+        .analytics-view.active {
+            display: block;
+        }
+
+        .analytics-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .analytics-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-change {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .metric-change.positive {
+            background: rgba(40, 167, 69, 0.8);
+        }
+
+        .metric-change.negative {
+            background: rgba(220, 53, 69, 0.8);
+        }
+
+        .reliability-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .reliability-card {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+        }
+
+        .reliability-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+
+        .reliability-metric .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .reliability-metric .metric-label {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .reliability-metric .metric-detail {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .trend-summary {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .trend-metric {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .trend-label {
+            font-weight: 500;
+        }
+
+        .trend-value {
+            font-weight: 600;
+        }
+
+        .trend-value.positive {
+            color: #28a745;
+        }
+
+        .trend-value.negative {
+            color: #dc3545;
+        }
+
+        .prediction-cards {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .prediction-card {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .prediction-route {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .prediction-probability {
+            margin-bottom: 1rem;
+        }
+
+        .probability-bar {
+            background: #e0e0e0;
+            height: 8px;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            overflow: hidden;
+        }
+
+        .probability-fill {
+            background: linear-gradient(90deg, #28a745 0%, #ffc107 50%, #dc3545 100%);
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .probability-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .prediction-reason {
+            font-size: 0.8rem;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .impact-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .impact-card {
+            display: flex;
+            align-items: center;
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .impact-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+
+        .impact-metric .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .impact-metric .metric-label {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .impact-metric .metric-detail {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        .last-updated {
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid #dee2e6;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .view-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .view-btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>🚂 Oslo Region Togforsinkelser</h1>
+        <p>Sanntidsstatistikk for alle tog i Oslo-regionen inkludert lokale, regionale og flytog</p>
+    </header>
+
+    <div class="container">
+        <div class="view-selector">
+            <button class="view-btn active" onclick="showView('station')">Stasjonsforsinkelser</button>
+            <button class="view-btn" onclick="showView('route')">Rute Gjennomsnitt</button>
+            <button class="view-btn" onclick="showView('analytics')">Analyse</button>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="summary-stats">
+            <div class="stat-card">
+                <div class="stat-value">3.2 min</div>
+                <div class="stat-label">Gjennomsnittlig Forsinkelse i Dag</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">45</div>
+                <div class="stat-label">Stasjonspar Overvåket</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">19</div>
+                <div class="stat-label">Ruter Dekket</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">92%</div>
+                <div class="stat-label">Punktlighet</div>
+            </div>
+        </div>
+
+        <!-- Station Delays View -->
+        <div id="station-view" class="station-delays-view active">
+            <!-- Time Filter for Whole View -->
+            <div class="view-controls">
+                <div class="time-filter">
+                    <label for="time-select">Tidsperiode:</label>
+                    <select id="time-select" class="time-select">
+                        <option value="today">I Dag</option>
+                        <option value="7days">Siste 7 Dager</option>
+                        <option value="30days">Siste 30 Dager</option>
+                    </select>
+                </div>
+                <div class="sort-controls">
+                    <label for="sort-select">Sorter etter:</label>
+                    <select id="sort-select" class="sort-select">
+                        <option value="delay-desc">Størst Forsinkelse Først</option>
+                        <option value="delay-asc">Minst Forsinkelse Først</option>
+                        <option value="name-asc">Stasjonsnavn A-Å</option>
+                        <option value="name-desc">Stasjonsnavn Å-A</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Sub-tabs for Station Delays -->
+            <div class="sub-tabs">
+                <button class="sub-tab-btn active" onclick="showStationSubView('stations')">Individuelle Stasjoner</button>
+                <button class="sub-tab-btn" onclick="showStationSubView('pairs')">Stasjon til Stasjon</button>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">📍 Stasjon Forsinkelse Oversikt</h3>
+                    </div>
+                    <div class="station-list" id="station-list">
+                        <!-- Individual station delays will be populated here -->
+                        <div class="station-card delayed" data-delay="7.2">
+                            <div class="station-info">
+                                <h4>Oslo Lufthavn</h4>
+                                <div class="station-details">Airport • FLY1, FLY2 routes</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">7.2 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card delayed" data-delay="6.1">
+                            <div class="station-info">
+                                <h4>Ski</h4>
+                                <div class="station-details">Østfold • L2, R20 routes</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">6.1 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card delayed" data-delay="5.8">
+                            <div class="station-info">
+                                <h4>Moss</h4>
+                                <div class="station-details">Østfold • L21 route</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">5.8 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card delayed" data-delay="4.7">
+                            <div class="station-info">
+                                <h4>Drammen</h4>
+                                <div class="station-details">Buskerud • L12, L13, R10, FLY2 routes</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">4.7 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card" data-delay="4.2">
+                            <div class="station-info">
+                                <h4>Lillehammer</h4>
+                                <div class="station-details">Oppland • R10 route</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">4.2 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card" data-delay="3.9">
+                            <div class="station-info">
+                                <h4>Lillestrøm</h4>
+                                <div class="station-details">Akershus • L1, L14, R11, R14 routes</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">3.9 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card" data-delay="3.6">
+                            <div class="station-info">
+                                <h4>Asker</h4>
+                                <div class="station-details">Akershus • L1, L14, R14 routes</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">3.6 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card" data-delay="3.2">
+                            <div class="station-info">
+                                <h4>Oslo S</h4>
+                                <div class="station-details">Central Station • All routes</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">3.2 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card" data-delay="2.9">
+                            <div class="station-info">
+                                <h4>Eidsvoll</h4>
+                                <div class="station-details">Akershus • L12, R11, R12 routes</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">2.9 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card" data-delay="2.4">
+                            <div class="station-info">
+                                <h4>Stabekk</h4>
+                                <div class="station-details">Bærum • L2, L21, L22 routes</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">2.4 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card" data-delay="2.1">
+                            <div class="station-info">
+                                <h4>Dal</h4>
+                                <div class="station-details">Akershus • L13, R13 routes</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">2.1 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card" data-delay="1.8">
+                            <div class="station-info">
+                                <h4>Kongsberg</h4>
+                                <div class="station-details">Buskerud • L12, R12 routes</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">1.8 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card" data-delay="1.9">
+                            <div class="station-info">
+                                <h4>Halden</h4>
+                                <div class="station-details">Østfold • R20 route</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">1.9 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-card" data-delay="1.6">
+                            <div class="station-info">
+                                <h4>Spikkestad</h4>
+                                <div class="station-details">Akershus • L1 route</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">1.6 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">📊 Stasjon Forsinkelse Fordeling</h3>
+                    </div>
+                    <div class="chart-placeholder">
+                        <div class="mockup-chart">
+                            <!-- Y-axis labels -->
+                            <div class="chart-y-axis">
+                                <div>8</div>
+                                <div>6</div>
+                                <div>4</div>
+                                <div>2</div>
+                                <div>0</div>
+                            </div>
+                            <!-- Chart area -->
+                            <div class="chart-area">
+                                <div class="bar-chart">
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 90px; background: #ff6b6b;" title="7.2 min - Oslo Lufthavn"></div>
+                                        <div class="bar-label">OSL</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 76px; background: #ff6b6b;" title="6.1 min - Ski"></div>
+                                        <div class="bar-label">Ski</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 73px; background: #ff6b6b;" title="5.8 min - Moss"></div>
+                                        <div class="bar-label">Moss</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 59px; background: #ffd93d;" title="4.7 min - Drammen"></div>
+                                        <div class="bar-label">Drammen</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 53px; background: #ffd93d;" title="4.2 min - Lillehammer"></div>
+                                        <div class="bar-label">Lillehammer</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 49px; background: #ffd93d;" title="3.9 min - Lillestrøm"></div>
+                                        <div class="bar-label">Lillestrøm</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 45px; background: #ffd93d;" title="3.6 min - Asker"></div>
+                                        <div class="bar-label">Asker</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 40px; background: #6bcf7f;" title="3.2 min - Oslo S"></div>
+                                        <div class="bar-label">Oslo S</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 36px; background: #6bcf7f;" title="2.9 min - Eidsvoll"></div>
+                                        <div class="bar-label">Eidsvoll</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 30px; background: #6bcf7f;" title="2.4 min - Stabekk"></div>
+                                        <div class="bar-label">Stabekk</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 26px; background: #6bcf7f;" title="2.1 min - Dal"></div>
+                                        <div class="bar-label">Dal</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 23px; background: #6bcf7f;" title="1.8 min - Kongsberg"></div>
+                                        <div class="bar-label">Kongsberg</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 24px; background: #6bcf7f;" title="1.9 min - Halden"></div>
+                                        <div class="bar-label">Halden</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 20px; background: #6bcf7f;" title="1.6 min - Spikkestad"></div>
+                                        <div class="bar-label">Spikkestad</div>
+                                    </div>
+                                </div>
+                                <!-- Grid lines -->
+                                <div class="chart-grid">
+                                    <div class="grid-line"></div>
+                                    <div class="grid-line"></div>
+                                    <div class="grid-line"></div>
+                                    <div class="grid-line"></div>
+                                </div>
+                            </div>
+                            <!-- X-axis label -->
+                            <div class="chart-x-axis">
+                                <div>Station Delay Minutes (Top 15 Stations)</div>
+                            </div>
+                        </div>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #6bcf7f;"></div>
+                                <span>Low (0-3 min)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #ffd93d;"></div>
+                                <span>Medium (3-5 min)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #ff6b6b;"></div>
+                                <span>High (5+ min)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Station-to-Station Delays Section -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">🔄 Stasjon-til-Stasjon Forsinkelser</h3>
+                    </div>
+                    <div class="station-pair-list" id="station-pair-list">
+                        <!-- Station-to-station delays will be populated here -->
+                        <div class="station-pair-card delayed" data-delay="8.5">
+                            <div class="station-pair-info">
+                                <h4>Drammen → Asker</h4>
+                                <div class="station-pair-details">L12, L13 routes • 32km • 25 min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">8.5 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card delayed" data-delay="7.8">
+                            <div class="station-pair-info">
+                                <h4>Asker → Oslo S</h4>
+                                <div class="station-pair-details">L1, L14 routes • 23km • 22 min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">7.8 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card delayed" data-delay="6.9">
+                            <div class="station-pair-info">
+                                <h4>Oslo S → Lillestrøm</h4>
+                                <div class="station-pair-details">L1, L14 routes • 18km • 12 min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">6.9 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card delayed" data-delay="6.2">
+                            <div class="station-pair-info">
+                                <h4>Ski → Oslo S</h4>
+                                <div class="station-pair-details">L2, R20 routes • 24km • 22 min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">6.2 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card delayed" data-delay="5.7">
+                            <div class="station-pair-info">
+                                <h4>Moss → Oslo S</h4>
+                                <div class="station-pair-details">L21 route • 58km • 45 min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">5.7 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card" data-delay="4.8">
+                            <div class="station-pair-info">
+                                <h4>Lillehammer → Oslo S</h4>
+                                <div class="station-pair-details">R10 route • 154km • 2h 15min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">4.8 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card" data-delay="4.3">
+                            <div class="station-pair-info">
+                                <h4>Oslo S → Eidsvoll</h4>
+                                <div class="station-pair-details">L12, R11 routes • 58km • 42 min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">4.3 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card" data-delay="3.9">
+                            <div class="station-pair-info">
+                                <h4>Oslo S → Stabekk</h4>
+                                <div class="station-pair-details">L2, L21 routes • 8km • 8 min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">3.9 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card" data-delay="3.4">
+                            <div class="station-pair-info">
+                                <h4>Oslo S → Dal</h4>
+                                <div class="station-pair-details">L13, R13 routes • 28km • 22 min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">3.4 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card" data-delay="2.8">
+                            <div class="station-pair-info">
+                                <h4>Oslo S → Kongsberg</h4>
+                                <div class="station-pair-details">L12, R12 routes • 99km • 1h 15min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">2.8 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card" data-delay="2.5">
+                            <div class="station-pair-info">
+                                <h4>Oslo S → Halden</h4>
+                                <div class="station-pair-details">R20 route • 118km • 1h 25min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">2.5 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                        <div class="station-pair-card" data-delay="2.1">
+                            <div class="station-pair-info">
+                                <h4>Oslo S → Spikkestad</h4>
+                                <div class="station-pair-details">L1 route • 38km • 32 min scheduled</div>
+                            </div>
+                            <div class="delay-info">
+                                <div class="delay-minutes">2.1 min</div>
+                                <div class="delay-label">avg delay</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">📊 Stasjon-til-Stasjon Forsinkelse Fordeling</h3>
+                    </div>
+                    <div class="chart-placeholder">
+                        <div class="mockup-chart">
+                            <!-- Y-axis labels -->
+                            <div class="chart-y-axis">
+                                <div>9</div>
+                                <div>7</div>
+                                <div>5</div>
+                                <div>3</div>
+                                <div>1</div>
+                            </div>
+                            <!-- Chart area -->
+                            <div class="chart-area">
+                                <div class="bar-chart">
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 95px; background: #ff6b6b;" title="8.5 min - Drammen→Asker"></div>
+                                        <div class="bar-label">Dr→As</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 87px; background: #ff6b6b;" title="7.8 min - Asker→Oslo S"></div>
+                                        <div class="bar-label">As→OS</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 77px; background: #ff6b6b;" title="6.9 min - Oslo S→Lillestrøm"></div>
+                                        <div class="bar-label">OS→Li</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 69px; background: #ff6b6b;" title="6.2 min - Ski→Oslo S"></div>
+                                        <div class="bar-label">Sk→OS</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 64px; background: #ff6b6b;" title="5.7 min - Moss→Oslo S"></div>
+                                        <div class="bar-label">Mo→OS</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 54px; background: #ffd93d;" title="4.8 min - Lillehammer→Oslo S"></div>
+                                        <div class="bar-label">LH→OS</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 48px; background: #ffd93d;" title="4.3 min - Oslo S→Eidsvoll"></div>
+                                        <div class="bar-label">OS→Ei</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 44px; background: #ffd93d;" title="3.9 min - Oslo S→Stabekk"></div>
+                                        <div class="bar-label">OS→St</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 38px; background: #6bcf7f;" title="3.4 min - Oslo S→Dal"></div>
+                                        <div class="bar-label">OS→Da</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 31px; background: #6bcf7f;" title="2.8 min - Oslo S→Kongsberg"></div>
+                                        <div class="bar-label">OS→Ko</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 28px; background: #6bcf7f;" title="2.5 min - Oslo S→Halden"></div>
+                                        <div class="bar-label">OS→Ha</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 24px; background: #6bcf7f;" title="2.1 min - Oslo S→Spikkestad"></div>
+                                        <div class="bar-label">OS→Sp</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #6bcf7f;"></div>
+                                <span>Low (0-3 min)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #ffd93d;"></div>
+                                <span>Medium (3-5 min)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #ff6b6b;"></div>
+                                <span>High (5+ min)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Route Averages View -->
+        <div id="route-view" class="route-averages-view">
+            <div class="dashboard-grid">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">🛤️ Rute Gjennomsnittlige Forsinkelser</h3>
+                        <div class="time-selector">
+                            <button class="time-btn active">I Dag</button>
+                            <button class="time-btn">Siste 7 Dager</button>
+                            <button class="time-btn">Siste 30 Dager</button>
+                        </div>
+                    </div>
+                    <div class="route-cards">
+                        <!-- Local Trains -->
+                        <div class="route-card">
+                            <div class="route-info">
+                                <h3>L1: Spikkestad-Oslo S-Lillestrøm</h3>
+                                <div>Local train • 4 stations • Akershus region</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-delay">3.5 min</div>
+                                <div class="route-details">12 trips<br>18% delayed</div>
+                            </div>
+                        </div>
+                        <div class="route-card">
+                            <div class="route-info">
+                                <h3>L2: Ski-Oslo S-Stabekk</h3>
+                                <div>Local train • 3 stations • Østfold-Bærum</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-delay">4.2 min</div>
+                                <div class="route-details">8 trips<br>25% delayed</div>
+                            </div>
+                        </div>
+                        <div class="route-card">
+                            <div class="route-info">
+                                <h3>L12: Kongsberg-Oslo S-Eidsvoll</h3>
+                                <div>Local train • 4 stations • Buskerud-Akershus</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-delay">3.1 min</div>
+                                <div class="route-details">6 trips<br>15% delayed</div>
+                            </div>
+                        </div>
+                        <div class="route-card">
+                            <div class="route-info">
+                                <h3>L13: Drammen-Oslo S-Dal</h3>
+                                <div>Local train • 3 stations • Buskerud-Akershus</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-delay">2.8 min</div>
+                                <div class="route-details">4 trips<br>12% delayed</div>
+                            </div>
+                        </div>
+                        <div class="route-card">
+                            <div class="route-info">
+                                <h3>L21: Stabekk-Oslo S-Moss</h3>
+                                <div>Local train • 3 stations • Bærum-Østfold</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-delay">4.0 min</div>
+                                <div class="route-details">6 trips<br>22% delayed</div>
+                            </div>
+                        </div>
+                        <!-- Regional Trains -->
+                        <div class="route-card">
+                            <div class="route-info">
+                                <h3>R10: Drammen-Oslo S-Lillehammer</h3>
+                                <div>Regional train • 3 stations • Oppland route</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-delay">4.2 min</div>
+                                <div class="route-details">3 trips<br>20% delayed</div>
+                            </div>
+                        </div>
+                        <div class="route-card">
+                            <div class="route-info">
+                                <h3>R11: Skien-Oslo S-Eidsvoll</h3>
+                                <div>Regional train • 3 stations • Telemark-Akershus</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-delay">2.9 min</div>
+                                <div class="route-details">2 trips<br>10% delayed</div>
+                            </div>
+                        </div>
+                        <div class="route-card">
+                            <div class="route-info">
+                                <h3>R20: Oslo S-Ski-Halden</h3>
+                                <div>Regional train • 3 stations • Østfold route</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-delay">2.5 min</div>
+                                <div class="route-details">4 trips<br>8% delayed</div>
+                            </div>
+                        </div>
+                        <!-- Airport Express -->
+                        <div class="route-card delayed">
+                            <div class="route-info">
+                                <h3>FLY1: Oslo S-Oslo Lufthavn</h3>
+                                <div>Airport Express • 2 stations • Direct to airport</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-delay">2.4 min</div>
+                                <div class="route-details">15 trips<br>5% delayed</div>
+                            </div>
+                        </div>
+                        <div class="route-card delayed">
+                            <div class="route-info">
+                                <h3>FLY2: Drammen-Oslo S-Oslo Lufthavn</h3>
+                                <div>Airport Express • 3 stations • Via Drammen</div>
+                            </div>
+                            <div class="route-stats">
+                                <div class="route-delay">5.4 min</div>
+                                <div class="route-details">8 trips<br>28% delayed</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">📈 Route Comparison</h3>
+                    </div>
+                    <div class="chart-placeholder">
+                        <div class="mockup-chart">
+                            <!-- Y-axis labels -->
+                            <div class="chart-y-axis">
+                                <div>8</div>
+                                <div>6</div>
+                                <div>4</div>
+                                <div>2</div>
+                                <div>0</div>
+                            </div>
+                            <!-- Chart area -->
+                            <div class="chart-area">
+                                <div class="line-chart">
+                                    <!-- L1 Route -->
+                                    <div class="line-series" style="color: #667eea;">
+                                        <div class="data-point" style="left: 10%; top: 60%;" title="L1: 4.0 min"></div>
+                                        <div class="data-point" style="left: 25%; top: 50%;" title="L1: 3.5 min"></div>
+                                        <div class="data-point" style="left: 40%; top: 45%;" title="L1: 3.2 min"></div>
+                                        <div class="data-point" style="left: 55%; top: 55%;" title="L1: 3.8 min"></div>
+                                        <div class="data-point" style="left: 70%; top: 40%;" title="L1: 2.8 min"></div>
+                                        <div class="data-point" style="left: 85%; top: 50%;" title="L1: 3.5 min"></div>
+                                        <svg class="line-path" viewBox="0 0 100 80">
+                                            <path d="M10,60 L25,50 L40,45 L55,55 L70,40 L85,50" stroke="#667eea" stroke-width="2" fill="none"/>
+                                        </svg>
+                                    </div>
+                                    <!-- L2 Route -->
+                                    <div class="line-series" style="color: #764ba2;">
+                                        <div class="data-point" style="left: 10%; top: 70%;" title="L2: 5.6 min"></div>
+                                        <div class="data-point" style="left: 25%; top: 65%;" title="L2: 5.2 min"></div>
+                                        <div class="data-point" style="left: 40%; top: 60%;" title="L2: 4.8 min"></div>
+                                        <div class="data-point" style="left: 55%; top: 75%;" title="L2: 6.0 min"></div>
+                                        <div class="data-point" style="left: 70%; top: 55%;" title="L2: 4.5 min"></div>
+                                        <div class="data-point" style="left: 85%; top: 65%;" title="L2: 5.2 min"></div>
+                                        <svg class="line-path" viewBox="0 0 100 80">
+                                            <path d="M10,70 L25,65 L40,60 L55,75 L70,55 L85,65" stroke="#764ba2" stroke-width="2" fill="none"/>
+                                        </svg>
+                                    </div>
+                                    <!-- FLY1 Route -->
+                                    <div class="line-series" style="color: #f093fb;">
+                                        <div class="data-point" style="left: 10%; top: 30%;" title="FLY1: 2.4 min"></div>
+                                        <div class="data-point" style="left: 25%; top: 25%;" title="FLY1: 2.0 min"></div>
+                                        <div class="data-point" style="left: 40%; top: 35%;" title="FLY1: 2.8 min"></div>
+                                        <div class="data-point" style="left: 55%; top: 20%;" title="FLY1: 1.6 min"></div>
+                                        <div class="data-point" style="left: 70%; top: 30%;" title="FLY1: 2.4 min"></div>
+                                        <div class="data-point" style="left: 85%; top: 25%;" title="FLY1: 2.0 min"></div>
+                                        <svg class="line-path" viewBox="0 0 100 80">
+                                            <path d="M10,30 L25,25 L40,35 L55,20 L70,30 L85,25" stroke="#f093fb" stroke-width="2" fill="none"/>
+                                        </svg>
+                                    </div>
+                                    <!-- FLY2 Route -->
+                                    <div class="line-series" style="color: #4facfe;">
+                                        <div class="data-point" style="left: 10%; top: 45%;" title="FLY2: 3.5 min"></div>
+                                        <div class="data-point" style="left: 25%; top: 50%;" title="FLY2: 4.0 min"></div>
+                                        <div class="data-point" style="left: 40%; top: 40%;" title="FLY2: 3.2 min"></div>
+                                        <div class="data-point" style="left: 55%; top: 55%;" title="FLY2: 4.4 min"></div>
+                                        <div class="data-point" style="left: 70%; top: 35%;" title="FLY2: 2.8 min"></div>
+                                        <div class="data-point" style="left: 85%; top: 45%;" title="FLY2: 3.5 min"></div>
+                                        <svg class="line-path" viewBox="0 0 100 80">
+                                            <path d="M10,45 L25,50 L40,40 L55,55 L70,35 L85,45" stroke="#4facfe" stroke-width="2" fill="none"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <!-- Grid lines -->
+                                <div class="chart-grid">
+                                    <div class="grid-line"></div>
+                                    <div class="grid-line"></div>
+                                    <div class="grid-line"></div>
+                                    <div class="grid-line"></div>
+                                </div>
+                            </div>
+                            <!-- X-axis labels -->
+                            <div class="chart-x-axis">
+                                <div style="position: absolute; left: 10%;">06:00</div>
+                                <div style="position: absolute; left: 25%;">08:00</div>
+                                <div style="position: absolute; left: 40%;">10:00</div>
+                                <div style="position: absolute; left: 55%;">12:00</div>
+                                <div style="position: absolute; left: 70%;">14:00</div>
+                                <div style="position: absolute; left: 85%;">16:00</div>
+                            </div>
+                        </div>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-line" style="background: #667eea;"></div>
+                                <span>L1: Spikkestad-Oslo S-Lillestrøm</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-line" style="background: #764ba2;"></div>
+                                <span>L2: Ski-Oslo S-Stabekk</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-line" style="background: #f093fb;"></div>
+                                <span>FLY1: Oslo S-Airport</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-line" style="background: #4facfe;"></div>
+                                <span>FLY2: Drammen-Oslo S-Airport</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics View -->
+        <div id="analytics-view" class="analytics-view">
+            <div class="dashboard-grid">
+                <!-- Peak Hour Performance -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">⏰ Rushtidsytelse</h3>
+                        <div class="time-selector">
+                            <button class="time-btn active">I Dag</button>
+                            <button class="time-btn">Siste 7 Dager</button>
+                            <button class="time-btn">Siste 30 Dager</button>
+                        </div>
+                    </div>
+                    <div class="analytics-cards">
+                        <div class="analytics-card">
+                            <div class="metric-label">Rushtid (07:00-09:00)</div>
+                            <div class="metric-value">6.8 min</div>
+                            <div class="metric-change positive">+12% vs utenfor rushtid</div>
+                        </div>
+                        <div class="analytics-card">
+                            <div class="metric-label">Kveldsrushtid (16:00-18:00)</div>
+                            <div class="metric-value">5.2 min</div>
+                            <div class="metric-change positive">+8% vs utenfor rushtid</div>
+                        </div>
+                        <div class="analytics-card">
+                            <div class="metric-label">Utenfor rushtid (10:00-15:00)</div>
+                            <div class="metric-value">3.1 min</div>
+                            <div class="metric-change">Basisnivå</div>
+                        </div>
+                        <div class="analytics-card">
+                            <div class="metric-label">Senkvelden (22:00-05:00)</div>
+                            <div class="metric-value">2.4 min</div>
+                            <div class="metric-change negative">-22% vs rushtid</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Day of Week Trends -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">📅 Ukedagsmønstre</h3>
+                    </div>
+                    <div class="chart-placeholder">
+                        <div class="mockup-chart">
+                            <div class="chart-y-axis">
+                                <div>8</div>
+                                <div>6</div>
+                                <div>4</div>
+                                <div>2</div>
+                                <div>0</div>
+                            </div>
+                            <div class="chart-area">
+                                <div class="bar-chart">
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 75px; background: #ff6b6b;" title="6.2 min - Monday"></div>
+                                        <div class="bar-label">Mon</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 70px; background: #ff6b6b;" title="5.8 min - Tuesday"></div>
+                                        <div class="bar-label">Tue</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 85px; background: #ffd93d;" title="7.1 min - Wednesday"></div>
+                                        <div class="bar-label">Wed</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 80px; background: #ffd93d;" title="6.7 min - Thursday"></div>
+                                        <div class="bar-label">Thu</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 95px; background: #ff6b6b;" title="7.9 min - Friday"></div>
+                                        <div class="bar-label">Fri</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 45px; background: #6bcf7f;" title="3.8 min - Saturday"></div>
+                                        <div class="bar-label">Sat</div>
+                                    </div>
+                                    <div class="bar-group">
+                                        <div class="bar" style="height: 35px; background: #6bcf7f;" title="2.9 min - Sunday"></div>
+                                        <div class="bar-label">Sun</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #6bcf7f;"></div>
+                                <span>Weekend (3.4 min avg)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #ffd93d;"></div>
+                                <span>Midweek (6.9 min avg)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #ff6b6b;"></div>
+                                <span>Peak Days (6.3 min avg)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reliability Metrics -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">🎯 Pålitelighetsmål</h3>
+                    </div>
+                    <div class="reliability-grid">
+                        <div class="reliability-card">
+                            <div class="reliability-icon">✅</div>
+                            <div class="reliability-metric">
+                                <div class="metric-value">87.3%</div>
+                                <div class="metric-label">Punktlighet</div>
+                                <div class="metric-detail">Tog innen 3 min</div>
+                            </div>
+                        </div>
+                        <div class="reliability-card">
+                            <div class="reliability-icon">📊</div>
+                            <div class="reliability-metric">
+                                <div class="metric-value">2.1 min</div>
+                                <div class="metric-label">Forsinkelsesstabilitet</div>
+                                <div class="metric-detail">Standardavvik</div>
+                            </div>
+                        </div>
+                        <div class="reliability-card">
+                            <div class="reliability-icon">🔄</div>
+                            <div class="reliability-metric">
+                                <div class="metric-value">18 min</div>
+                                <div class="metric-label">Gjenopprettingstid</div>
+                                <div class="metric-detail">Gj.snitt til normal</div>
+                            </div>
+                        </div>
+                        <div class="reliability-card">
+                            <div class="reliability-icon">👥</div>
+                            <div class="reliability-metric">
+                                <div class="metric-value">12,450</div>
+                                <div class="metric-label">Daglig Påvirkning</div>
+                                <div class="metric-detail">Passasjerer berørt</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trend Analysis -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">📈 Forsinkelsestrender (30-Dagers)</h3>
+                    </div>
+                    <div class="chart-placeholder">
+                        <div class="mockup-chart">
+                            <div class="chart-y-axis">
+                                <div>8</div>
+                                <div>6</div>
+                                <div>4</div>
+                                <div>2</div>
+                                <div>0</div>
+                            </div>
+                            <div class="chart-area">
+                                <div class="line-chart">
+                                    <svg class="trend-line" viewBox="0 0 100 80">
+                                        <path d="M5,65 L10,62 L15,58 L20,55 L25,60 L30,57 L35,54 L40,58 L45,55 L50,52 L55,48 L60,45 L65,50 L70,47 L75,44 L80,48 L85,45 L90,42 L95,38" 
+                                              stroke="#667eea" stroke-width="3" fill="none"/>
+                                        <circle cx="95" cy="38" r="3" fill="#667eea" title="Current: 3.2 min"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="trend-summary">
+                            <div class="trend-metric">
+                                <span class="trend-label">30-Dagers Trend:</span>
+                                <span class="trend-value negative">↘️ -8.2%</span>
+                            </div>
+                            <div class="trend-metric">
+                                <span class="trend-label">vs Forrige Måned:</span>
+                                <span class="trend-value positive">↗️ +15.3%</span>
+                            </div>
+                            <div class="trend-metric">
+                                <span class="trend-label">Beste Måned:</span>
+                                <span class="trend-value">November (2.8 min gj.snitt)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Predictive Insights -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">🔮 Prediksjoner for i Morgen</h3>
+                    </div>
+                    <div class="prediction-cards">
+                        <div class="prediction-card">
+                            <div class="prediction-route">L1: Spikkestad-Oslo S</div>
+                            <div class="prediction-probability">
+                                <div class="probability-bar">
+                                    <div class="probability-fill" style="width: 65%;"></div>
+                                </div>
+                                <div class="probability-text">65% sjanse for >5 min forsinkelse</div>
+                            </div>
+                            <div class="prediction-reason">Værvarsel: Snø forventes</div>
+                        </div>
+                        <div class="prediction-card">
+                            <div class="prediction-route">FLY1: Oslo S-Flyplass</div>
+                            <div class="prediction-probability">
+                                <div class="probability-bar">
+                                    <div class="probability-fill" style="width: 25%;"></div>
+                                </div>
+                                <div class="probability-text">25% sjanse for >5 min forsinkelse</div>
+                            </div>
+                            <div class="prediction-reason">Historisk mønster: God pålitelighet</div>
+                        </div>
+                        <div class="prediction-card">
+                            <div class="prediction-route">R10: Oslo S-Lillehammer</div>
+                            <div class="prediction-probability">
+                                <div class="probability-bar">
+                                    <div class="probability-fill" style="width: 45%;"></div>
+                                </div>
+                                <div class="probability-text">45% sjanse for >5 min forsinkelse</div>
+                            </div>
+                            <div class="prediction-reason">Helgeplan: Redusert frekvens</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Impact Analysis -->
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h3 class="chart-title">💰 Økonomisk Påvirkning</h3>
+                    </div>
+                    <div class="impact-stats">
+                        <div class="impact-card">
+                            <div class="impact-icon">⏱️</div>
+                            <div class="impact-metric">
+                                <div class="metric-value">47,200 min</div>
+                                <div class="metric-label">Daglig Tapt Tid</div>
+                                <div class="metric-detail">Totale passasjerforsinkelsesminutter</div>
+                            </div>
+                        </div>
+                        <div class="impact-card">
+                            <div class="impact-icon">💸</div>
+                            <div class="impact-metric">
+                                <div class="metric-value">NOK 1,270,000</div>
+                                <div class="metric-label">Daglig Kostnad</div>
+                                <div class="metric-detail">NOK 27 per forsinkelsesminutt</div>
+                            </div>
+                        </div>
+                        <div class="impact-card">
+                            <div class="impact-icon">🌱</div>
+                            <div class="impact-metric">
+                                <div class="metric-value">2.3 tonn</div>
+                                <div class="metric-label">CO₂ Påvirkning</div>
+                                <div class="metric-detail">Ekstra drivstofforbruk</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="last-updated">
+            Sist oppdatert: 5. januar 2026 kl. 18:30 | Datakilde: Entur sanntids-API | Neste oppdatering: ~30 minutter
+        </div>
+    </div>
+
+    <script>
+        function showView(viewType) {
+            // Update button states
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Show/hide views
+            document.querySelectorAll('.station-delays-view, .route-averages-view, .analytics-view').forEach(view => view.classList.remove('active'));
+
+            if (viewType === 'station') {
+                document.getElementById('station-view').classList.add('active');
+            } else if (viewType === 'route') {
+                document.getElementById('route-view').classList.add('active');
+            } else if (viewType === 'analytics') {
+                document.getElementById('analytics-view').classList.add('active');
+            }
+        }
+
+        // Add click handlers to view buttons
+        document.querySelectorAll('.view-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                let viewType;
+                if (this.textContent.toLowerCase().includes('station')) {
+                    viewType = 'station';
+                } else if (this.textContent.toLowerCase().includes('route')) {
+                    viewType = 'route';
+                } else if (this.textContent.toLowerCase().includes('analytics')) {
+                    viewType = 'analytics';
+                }
+                showView(viewType);
+            });
+        });
+
+        // Add click handlers to time buttons
+        document.querySelectorAll('.time-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from siblings
+                this.parentNode.querySelectorAll('.time-btn').forEach(sibling => sibling.classList.remove('active'));
+                // Add active class to clicked button
+                this.classList.add('active');
+            });
+        });
+
+        // Sorting functionality for station delays
+        function sortStations(sortBy) {
+            // Sort individual stations
+            const stationList = document.getElementById('station-list');
+            if (stationList) {
+                const stations = Array.from(stationList.children);
+
+                stations.sort((a, b) => {
+                    const delayA = parseFloat(a.dataset.delay);
+                    const delayB = parseFloat(b.dataset.delay);
+                    const nameA = a.querySelector('h4').textContent.toLowerCase();
+                    const nameB = b.querySelector('h4').textContent.toLowerCase();
+
+                    switch(sortBy) {
+                        case 'delay-desc':
+                            return delayB - delayA;
+                        case 'delay-asc':
+                            return delayA - delayB;
+                        case 'name-asc':
+                            return nameA.localeCompare(nameB);
+                        case 'name-desc':
+                            return nameB.localeCompare(nameA);
+                        default:
+                            return delayB - delayA; // Default to delay descending
+                    }
+                });
+
+                // Clear and re-append sorted stations
+                stationList.innerHTML = '';
+                stations.forEach(station => stationList.appendChild(station));
+            }
+
+            // Sort station pairs
+            const stationPairList = document.getElementById('station-pair-list');
+            if (stationPairList) {
+                const stationPairs = Array.from(stationPairList.children);
+
+                stationPairs.sort((a, b) => {
+                    const delayA = parseFloat(a.dataset.delay);
+                    const delayB = parseFloat(b.dataset.delay);
+                    const nameA = a.querySelector('h4').textContent.toLowerCase();
+                    const nameB = b.querySelector('h4').textContent.toLowerCase();
+
+                    switch(sortBy) {
+                        case 'delay-desc':
+                            return delayB - delayA;
+                        case 'delay-asc':
+                            return delayA - delayB;
+                        case 'name-asc':
+                            return nameA.localeCompare(nameB);
+                        case 'name-desc':
+                            return nameB.localeCompare(nameA);
+                        default:
+                            return delayB - delayA; // Default to delay descending
+                    }
+                });
+
+                // Clear and re-append sorted station pairs
+                stationPairList.innerHTML = '';
+                stationPairs.forEach(pair => stationPairList.appendChild(pair));
+            }
+        }
+
+        // Function to switch between individual stations and station pairs view
+        function showStationSubView(viewType) {
+            // Update sub-tab buttons
+            document.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Get all chart containers in the station delays view
+            const chartContainers = document.querySelectorAll('#station-view .chart-container');
+
+            chartContainers.forEach((container, index) => {
+                if (viewType === 'stations') {
+                    // Show individual stations (first 2 containers: overview and distribution)
+                    if (index < 2) {
+                        container.style.display = 'block';
+                    } else {
+                        container.style.display = 'none';
+                    }
+                } else if (viewType === 'pairs') {
+                    // Show station pairs (last 2 containers: pairs overview and distribution)
+                    if (index >= 2) {
+                        container.style.display = 'block';
+                    } else {
+                        container.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        // Add event listeners for sort controls
+        document.getElementById('sort-select').addEventListener('change', function() {
+            sortStations(this.value);
+        });
+
+        // Initialize with default sorting (largest delay first)
+        document.addEventListener('DOMContentLoaded', function() {
+            sortStations('delay-desc');
+        });
+    </script>
+</body>
+</html>

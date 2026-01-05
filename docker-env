@@ -1,0 +1,13 @@
+# Database Configuration for Docker
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=train_delays
+DB_USER=train_delays_user
+DB_PASSWORD=train_delays_password
+
+# Git Configuration (for JSON commits)
+GIT_REPO_PATH=/Users/ugurcenar/Documents/Projects/togforsinkelser
+GIT_REMOTE_URL=https://github.com/yourusername/togforsinkelser.git
+
+# API Configuration (if needed in future)
+# ENTUR_API_KEY=your_api_key_here
