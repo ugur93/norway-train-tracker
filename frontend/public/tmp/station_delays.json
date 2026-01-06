@@ -3,133 +3,133 @@
     "from_stop": "Spikkestad",
     "to_stop": "Asker",
     "route_id": "L1",
-    "delay_minutes": 9.983333333333333,
-    "timestamp": "2026-01-06T19:00:02.093407"
+    "delay_minutes": 2.8333333333333335,
+    "timestamp": "2026-01-05T20:10:02.132589"
   },
   {
     "from_stop": "Asker",
     "to_stop": "Oslo S",
     "route_id": "L1",
-    "delay_minutes": 6.716666666666667,
-    "timestamp": "2026-01-06T19:00:02.093417"
+    "delay_minutes": 6.7,
+    "timestamp": "2026-01-05T20:10:02.132598"
   },
   {
     "from_stop": "Oslo S",
     "to_stop": "Lillestr\u00f8m",
     "route_id": "L1",
-    "delay_minutes": 0.38333333333333336,
-    "timestamp": "2026-01-06T19:00:02.093421"
+    "delay_minutes": 8.4,
+    "timestamp": "2026-01-05T20:10:02.132601"
   },
   {
     "from_stop": "Ski",
     "to_stop": "Oslo S",
     "route_id": "L2",
-    "delay_minutes": 1.6666666666666667,
-    "timestamp": "2026-01-06T19:00:02.093424"
+    "delay_minutes": 9.433333333333334,
+    "timestamp": "2026-01-05T20:10:02.132604"
   },
   {
     "from_stop": "Oslo S",
     "to_stop": "Stabekk",
     "route_id": "L2",
-    "delay_minutes": 7.4,
-    "timestamp": "2026-01-06T19:00:02.093427"
+    "delay_minutes": 9.85,
+    "timestamp": "2026-01-05T20:10:02.132606"
   },
   {
     "from_stop": "Kongsberg",
     "to_stop": "Drammen",
     "route_id": "L12",
-    "delay_minutes": 6.483333333333333,
-    "timestamp": "2026-01-06T19:00:02.093429"
+    "delay_minutes": 6.266666666666667,
+    "timestamp": "2026-01-05T20:10:02.132608"
   },
   {
     "from_stop": "Drammen",
     "to_stop": "Oslo S",
     "route_id": "L12",
-    "delay_minutes": 3.783333333333333,
-    "timestamp": "2026-01-06T19:00:02.093437"
+    "delay_minutes": 3.466666666666667,
+    "timestamp": "2026-01-05T20:10:02.132610"
   },
   {
     "from_stop": "Oslo S",
     "to_stop": "Eidsvoll",
     "route_id": "L12",
-    "delay_minutes": 6.216666666666667,
-    "timestamp": "2026-01-06T19:00:02.093441"
+    "delay_minutes": 3.35,
+    "timestamp": "2026-01-05T20:10:02.132612"
   },
   {
     "from_stop": "Drammen",
     "to_stop": "Oslo S",
     "route_id": "L13",
-    "delay_minutes": 6.0,
-    "timestamp": "2026-01-06T19:00:02.093443"
+    "delay_minutes": 1.5833333333333333,
+    "timestamp": "2026-01-05T20:10:02.132614"
   },
   {
     "from_stop": "Oslo S",
     "to_stop": "Dal",
     "route_id": "L13",
-    "delay_minutes": 7.533333333333333,
-    "timestamp": "2026-01-06T19:00:02.093445"
+    "delay_minutes": 9.066666666666666,
+    "timestamp": "2026-01-05T20:10:02.132616"
   },
   {
     "from_stop": "Stabekk",
     "to_stop": "Oslo S",
     "route_id": "L21",
-    "delay_minutes": 4.083333333333333,
-    "timestamp": "2026-01-06T19:00:02.093447"
+    "delay_minutes": 7.466666666666667,
+    "timestamp": "2026-01-05T20:10:02.132618"
   },
   {
     "from_stop": "Oslo S",
     "to_stop": "Moss",
     "route_id": "L21",
-    "delay_minutes": 1.8166666666666667,
-    "timestamp": "2026-01-06T19:00:02.093449"
+    "delay_minutes": 9.05,
+    "timestamp": "2026-01-05T20:10:02.132620"
   },
   {
     "from_stop": "Drammen",
     "to_stop": "Oslo S",
     "route_id": "R10",
-    "delay_minutes": 5.35,
-    "timestamp": "2026-01-06T19:00:02.093451"
+    "delay_minutes": 4.366666666666666,
+    "timestamp": "2026-01-05T20:10:02.132622"
   },
   {
     "from_stop": "Oslo S",
     "to_stop": "Lillehammer",
     "route_id": "R10",
-    "delay_minutes": 8.133333333333333,
-    "timestamp": "2026-01-06T19:00:02.093453"
+    "delay_minutes": 3.6166666666666667,
+    "timestamp": "2026-01-05T20:10:02.132624"
   },
   {
     "from_stop": "Oslo S",
     "to_stop": "Ski",
     "route_id": "R20",
-    "delay_minutes": 3.933333333333333,
-    "timestamp": "2026-01-06T19:00:02.093455"
+    "delay_minutes": 1.2833333333333334,
+    "timestamp": "2026-01-05T20:10:02.132626"
   },
   {
     "from_stop": "Ski",
     "to_stop": "Halden",
     "route_id": "R20",
-    "delay_minutes": 6.216666666666667,
-    "timestamp": "2026-01-06T19:00:02.093457"
+    "delay_minutes": 5.15,
+    "timestamp": "2026-01-05T20:10:02.132628"
   },
   {
     "from_stop": "Oslo S",
     "to_stop": "Oslo Lufthavn",
     "route_id": "FLY1",
-    "delay_minutes": 9.333333333333334,
-    "timestamp": "2026-01-06T19:00:02.093459"
+    "delay_minutes": 8.533333333333333,
+    "timestamp": "2026-01-05T20:10:02.132630"
   },
   {
     "from_stop": "Drammen",
     "to_stop": "Oslo S",
     "route_id": "FLY2",
-    "delay_minutes": 1.4333333333333333,
-    "timestamp": "2026-01-06T19:00:02.093461"
+    "delay_minutes": 5.7,
+    "timestamp": "2026-01-05T20:10:02.132632"
   },
   {
     "from_stop": "Oslo S",
     "to_stop": "Oslo Lufthavn",
     "route_id": "FLY2",
-    "delay_minutes": 6.733333333333333,
-    "timestamp": "2026-01-06T19:00:02.093463"
+    "delay_minutes": 5.616666666666666,
+    "timestamp": "2026-01-05T20:10:02.132634"
   }
 ]

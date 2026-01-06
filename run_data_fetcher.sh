@@ -4,9 +4,9 @@
 # This script is designed to be run by cron for automated data collection
 
 # Configuration
-PROJECT_DIR="/Users/ugurcenar/Documents/Projects/togforsinkelser"
+PROJECT_DIR="/home/ugur-cenar/Projects/norway-train-tracker"
 LOG_FILE="$PROJECT_DIR/logs/cron.log"
-PYTHON_EXECUTABLE="python3"
+PYTHON_EXECUTABLE="/usr/bin/python3"
 SCRIPT_NAME="data_fetcher.py"
 
 # Create logs directory if it doesn't exist
@@ -22,6 +22,10 @@ cd "$PROJECT_DIR" || {
     log_message "ERROR: Cannot change to project directory $PROJECT_DIR"
     exit 1
 }
+
+# Set database environment variables
+export DB_USER="train_delays_user"
+export DB_PASSWORD="train_delays_password"
 
 # Log start of execution
 log_message "Starting automated data fetch"

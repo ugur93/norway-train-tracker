@@ -4,7 +4,7 @@
 # This script helps set up automated data collection using cron
 
 # Configuration
-PROJECT_DIR="/Users/ugurcenar/Documents/Projects/togforsinkelser"
+PROJECT_DIR="/home/ugur-cenar/Projects/norway-train-tracker"
 CRON_SCRIPT="$PROJECT_DIR/run_data_fetcher.sh"
 LOG_FILE="$PROJECT_DIR/logs/cron_setup.log"
 
