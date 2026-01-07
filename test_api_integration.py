@@ -16,7 +16,7 @@ def test_api_connectivity():
 
     try:
         # Test GTFS-RT trip updates endpoint
-        url = "https://api.entur.org/realtime/v1/gtfs-rt/trip-updates"
+        url = "https://api.entur.io/realtime/v1/gtfs-rt/trip-updates"
         response = requests.get(url, timeout=10)
 
         if response.status_code == 200:
@@ -66,7 +66,7 @@ def test_station_pair_extraction():
     print("\nTesting station pair extraction...")
 
     try:
-        url = "https://api.entur.org/realtime/v1/gtfs-rt/trip-updates"
+        url = "https://api.entur.io/realtime/v1/gtfs-rt/trip-updates"
         response = requests.get(url, timeout=10)
 
         if response.status_code != 200:

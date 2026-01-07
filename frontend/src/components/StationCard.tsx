@@ -1,43 +1,36 @@
-import { getDelayColor } from '../types';
-
 interface StationCardProps {
   station: string;
   avgDelay: number;
   tripCount: number;
 }
 
+const getDelayBorderColor = (delay: number) => {
+  if (delay < 3) return 'border-l-green-500';
+  if (delay < 5) return 'border-l-yellow-500';
+  if (delay < 8) return 'border-l-orange-500';
+  return 'border-l-red-500';
+};
+
+const getDelayTextColor = (delay: number) => {
+  if (delay < 3) return 'text-green-600';
+  if (delay < 5) return 'text-yellow-600';
+  if (delay < 8) return 'text-orange-600';
+  return 'text-red-600';
+};
+
 const StationCard = ({ station, avgDelay, tripCount }: StationCardProps) => {
-  const delayColor = getDelayColor(avgDelay);
-
+  const borderColor = getDelayBorderColor(avgDelay);
+  const textColor = getDelayTextColor(avgDelay);
+  
   return (
-    <div className={`p-4 rounded-lg border-l-4 bg-gray-50 dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow ${delayColor.border}`}>
-      <div className="flex justify-between items-start mb-3">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{station}</h3>
-        <span className={`px-2 py-1 rounded text-sm font-medium ${delayColor.bg} ${delayColor.text}`}>
-          {avgDelay.toFixed(1)} min
-        </span>
+    <div className={`flex justify-between items-center p-4 bg-gray-50 border-l-4 ${borderColor} rounded-lg shadow-sm hover:shadow-md transition-all duration-300`}>
+      <div className="station-info">
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">{station}</h3>
+        <div className="text-sm text-gray-600">{tripCount} turer</div>
       </div>
-
-      <div className="space-y-1">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600 dark:text-gray-400">Gjennomsnittlig forsinkelse:</span>
-          <span className={`font-semibold ${delayColor.text}`}>
-            {avgDelay.toFixed(1)} minutter
-          </span>
-        </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600 dark:text-gray-400">Antall turer:</span>
-          <span className="font-semibold text-gray-900 dark:text-white">{tripCount}</span>
-        </div>
-      </div>
-
-      <div className="mt-3">
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-          <div
-            className={`h-2 rounded-full ${avgDelay < 3 ? 'bg-green-500' : avgDelay < 5 ? 'bg-yellow-500' : 'bg-red-500'}`}
-            style={{ width: `${Math.min((avgDelay / 10) * 100, 100)}%` }}
-          ></div>
-        </div>
+      <div className="delay-info text-right">
+        <div className={`text-xl font-bold ${textColor}`}>{avgDelay.toFixed(1)} min</div>
+        <div className="text-xs text-gray-500">avg delay</div>
       </div>
     </div>
   );

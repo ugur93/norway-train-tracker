@@ -77,29 +77,29 @@ const AnalyticsView = () => {
 
       {/* Analytics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center border border-gray-200 dark:border-gray-700">
+          <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {totalTrips.toLocaleString()}
           </div>
           <div className="text-gray-600 dark:text-gray-400">Totale Turer</div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center border border-gray-200 dark:border-gray-700">
+          <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {avgDelay.toFixed(1)} min
           </div>
           <div className="text-gray-600 dark:text-gray-400">Gjennomsnittlig Forsinkelse</div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center border border-gray-200 dark:border-gray-700">
+          <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {onTimeRate.toFixed(1)}%
           </div>
           <div className="text-gray-600 dark:text-gray-400">På-tid Rate</div>
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center">
-          <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 text-center border border-gray-200 dark:border-gray-700">
+          <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {filteredRoutes.length}
           </div>
           <div className="text-gray-600 dark:text-gray-400">Aktive Ruter</div>
@@ -107,19 +107,19 @@ const AnalyticsView = () => {
       </div>
 
       {/* Peak Hour Analysis */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8 border border-gray-200 dark:border-gray-700">
         <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Rushtidsanalyse</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-            <div className="text-2xl font-bold text-green-600 dark:text-green-400">2.1 min</div>
+          <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">2.1 min</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Off-peak (10-15)</div>
           </div>
-          <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-            <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">4.8 min</div>
+          <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">4.8 min</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Rush hour (7-9)</div>
           </div>
-          <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-            <div className="text-2xl font-bold text-red-600 dark:text-red-400">6.2 min</div>
+          <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">6.2 min</div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Evening peak (16-18)</div>
           </div>
         </div>
@@ -149,7 +149,7 @@ const AnalyticsView = () => {
             { label: 'Dag 6', value: 3.8 },
             { label: 'Dag 7', value: 4.5 }
           ]}
-          color="rgb(239, 68, 68)"
+          color="rgb(59, 130, 246)"
         />
       </div>
 

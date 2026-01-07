@@ -2,73 +2,73 @@
   {
     "date": "2026-01-06",
     "route_id": "FLY1",
-    "avg_delay_minutes": 9.333333333333334,
-    "total_delay_minutes": 9.333333333333334,
+    "avg_delay_minutes": 6.416666666666667,
+    "total_delay_minutes": 6.416666666666667,
     "delay_count": 1,
     "route_name": "Oslo S - Oslo Lufthavn"
   },
   {
     "date": "2026-01-06",
     "route_id": "FLY2",
-    "avg_delay_minutes": 4.083333333333333,
-    "total_delay_minutes": 8.166666666666666,
+    "avg_delay_minutes": 0.7166666666666667,
+    "total_delay_minutes": 1.4333333333333333,
     "delay_count": 2,
     "route_name": "Drammen - Oslo S - Oslo Lufthavn"
   },
   {
     "date": "2026-01-06",
     "route_id": "L1",
-    "avg_delay_minutes": 5.694444444444444,
-    "total_delay_minutes": 17.083333333333332,
+    "avg_delay_minutes": 4.316666666666666,
+    "total_delay_minutes": 12.95,
     "delay_count": 3,
     "route_name": "Spikkestad - Oslo S - Lillestr\u00f8m"
   },
   {
     "date": "2026-01-06",
     "route_id": "L12",
-    "avg_delay_minutes": 5.4944444444444445,
-    "total_delay_minutes": 16.483333333333334,
+    "avg_delay_minutes": 6.683333333333334,
+    "total_delay_minutes": 20.05,
     "delay_count": 3,
     "route_name": "Kongsberg - Oslo S - Eidsvoll"
   },
   {
     "date": "2026-01-06",
     "route_id": "L13",
-    "avg_delay_minutes": 6.766666666666667,
-    "total_delay_minutes": 13.533333333333333,
+    "avg_delay_minutes": 3.2,
+    "total_delay_minutes": 6.4,
     "delay_count": 2,
     "route_name": "Drammen - Oslo S - Dal"
   },
   {
     "date": "2026-01-06",
     "route_id": "L2",
-    "avg_delay_minutes": 4.533333333333333,
-    "total_delay_minutes": 9.066666666666666,
+    "avg_delay_minutes": 5.6000000000000005,
+    "total_delay_minutes": 11.200000000000001,
     "delay_count": 2,
     "route_name": "Ski - Oslo S - Stabekk"
   },
   {
     "date": "2026-01-06",
     "route_id": "L21",
-    "avg_delay_minutes": 2.9499999999999997,
-    "total_delay_minutes": 5.8999999999999995,
+    "avg_delay_minutes": 7.199999999999999,
+    "total_delay_minutes": 14.399999999999999,
     "delay_count": 2,
     "route_name": "Stabekk - Oslo S - Moss"
   },
   {
     "date": "2026-01-06",
     "route_id": "R10",
-    "avg_delay_minutes": 6.741666666666666,
-    "total_delay_minutes": 13.483333333333333,
+    "avg_delay_minutes": 4.925000000000001,
+    "total_delay_minutes": 9.850000000000001,
     "delay_count": 2,
     "route_name": "Drammen - Oslo S - Lillehammer"
   },
   {
     "date": "2026-01-06",
     "route_id": "R20",
-    "avg_delay_minutes": 5.075,
-    "total_delay_minutes": 10.15,
-    "delay_count": 2,
+    "avg_delay_minutes": 4.5,
+    "total_delay_minutes": 4.5,
+    "delay_count": 1,
     "route_name": "Oslo S - Ski - Halden"
   }
 ]

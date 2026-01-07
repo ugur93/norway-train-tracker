@@ -1,7 +1,9 @@
 export interface StationDelay {
   date: string;
   from_stop: string;
+  from_stop_name: string;
   to_stop: string;
+  to_stop_name: string;
   avg_delay_minutes: number;
   total_delay_minutes: number;
   delay_count: number;
@@ -20,6 +22,10 @@ export interface RouteStats {
 export interface HourlyStats {
   date: string;
   hour: number;
+  from_stop: string;
+  from_stop_name: string;
+  to_stop: string;
+  to_stop_name: string;
   avg_delay_minutes: number;
   total_delay_minutes: number;
   delay_count: number;
@@ -37,26 +43,24 @@ export interface DelayColor {
 }
 
 export const getDelayColor = (delay: number): DelayColor => {
+  // Simplified: use minimal colors, just text color for status
   if (delay < 3) {
-    // Good delay - green
     return {
-      bg: 'bg-green-50 dark:bg-green-900/20',
-      text: 'text-green-700 dark:text-green-300',
-      border: 'border-green-500'
+      bg: 'bg-gray-50 dark:bg-gray-800',
+      text: 'text-gray-700 dark:text-gray-300',
+      border: 'border-gray-200 dark:border-gray-700'
     };
   } else if (delay < 5) {
-    // Moderate delay - yellow/orange
     return {
-      bg: 'bg-yellow-50 dark:bg-yellow-900/20',
-      text: 'text-yellow-700 dark:text-yellow-300',
-      border: 'border-yellow-500'
+      bg: 'bg-gray-50 dark:bg-gray-800',
+      text: 'text-gray-700 dark:text-gray-300',
+      border: 'border-gray-200 dark:border-gray-700'
     };
   } else {
-    // High delay - red
     return {
-      bg: 'bg-red-50 dark:bg-red-900/20',
-      text: 'text-red-700 dark:text-red-300',
-      border: 'border-red-500'
+      bg: 'bg-gray-50 dark:bg-gray-800',
+      text: 'text-gray-700 dark:text-gray-300',
+      border: 'border-gray-200 dark:border-gray-700'
     };
   }
 };

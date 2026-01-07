@@ -10,7 +10,7 @@ interface LineChartProps {
   color?: string;
 }
 
-const LineChart: React.FC<LineChartProps> = ({ data, title, height = 300, color = 'rgb(59, 130, 246)' }) => {
+const LineChart: React.FC<LineChartProps> = ({ data, title, height = 300, color = 'rgb(156, 163, 175)' }) => {
   const maxValue = Math.max(...data.map(d => d.value));
   const minValue = Math.min(...data.map(d => d.value));
 
@@ -21,7 +21,7 @@ const LineChart: React.FC<LineChartProps> = ({ data, title, height = 300, color 
   }).join(' ');
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
       {title && <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{title}</h3>}
       <div className="relative" style={{ height }}>
         <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -52,7 +52,6 @@ const LineChart: React.FC<LineChartProps> = ({ data, title, height = 300, color 
                 r="1.5"
                 fill={color}
                 className="hover:r-2 transition-all cursor-pointer"
-                title={`${item.label}: ${item.value.toFixed(1)}`}
               />
             );
           })}

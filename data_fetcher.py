@@ -20,7 +20,7 @@ from oslo_region_config import OSLO_REGION_ROUTES, get_all_route_codes, get_stat
 load_dotenv()
 
 # Configuration
-ENTUR_API_URL = "https://api.entur.org/realtime/v1"  # Base URL for Entur real-time API
+ENTUR_API_URL = "https://api.entur.io/realtime/v1"  # Base URL for Entur real-time API
 # No API key required for open GTFS-RT feeds
 
 class TrainDelayFetcher:
@@ -175,7 +175,7 @@ class TrainDelayFetcher:
         """
         try:
             # Entur GTFS-RT endpoint for trip updates (contains delay info)
-            url = "https://api.entur.org/realtime/v1/gtfs-rt/trip-updates"
+            url = "https://api.entur.io/realtime/v1/gtfs-rt/trip-updates"
 
             response = self.session.get(url, timeout=30)
             response.raise_for_status()

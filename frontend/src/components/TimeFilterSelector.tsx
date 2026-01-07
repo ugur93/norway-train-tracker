@@ -7,18 +7,18 @@ interface TimeFilterSelectorProps {
 
 const TimeFilterSelector = ({ value, onChange }: TimeFilterSelectorProps) => {
   const options = [
-    { value: 'today' as TimeFilter, label: 'I Dag' },
-    { value: '7days' as TimeFilter, label: 'Siste 7 Dager' },
-    { value: '30days' as TimeFilter, label: 'Siste 30 Dager' },
+    { value: 'today' as TimeFilter, label: 'I dag' },
+    { value: '7days' as TimeFilter, label: '7 dager' },
+    { value: '30days' as TimeFilter, label: '30 dager' },
   ];
 
   return (
-    <div className="flex items-center space-x-2">
-      <label className="font-medium text-gray-700 dark:text-gray-300">Tidsperiode:</label>
+    <div className="flex items-center gap-2 bg-white rounded-lg shadow-md px-3 py-2">
+      <label className="font-medium text-gray-700 text-sm">Periode:</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as TimeFilter)}
-        className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+        className="px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 text-sm"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>

@@ -4,11 +4,11 @@
 This project aims to create a comprehensive dashboard visualizing train delay statistics for the Oslo region, focusing on routes radiating from Oslo Central Station (Oslo S). The dashboard provides two selectable views: individual station-pair delays and average route delays, using real-time data from the Entur API. Users can explore delay patterns by time period and gain insights into train reliability across major Norwegian transportation corridors including Drammen-Oslo, Oslo-Gardemoen, and connecting lines like Oslo-Sandvika and Oslo-Asker in both directions.
 
 **Deployment Options:**
-- **Docker**: Full containerized deployment with `docker-compose.yml` (PostgreSQL + pgAdmin)
-- **Native**: Traditional server deployment with cron automation
-- **Hybrid**: JSON-only static hosting without database backend
+- **Supabase**: Cloud database with Edge Functions for serverless data processing and collection
+- **GitHub Actions**: Scheduled automation for data collection every 10 minutes
+- **Frontend**: Static hosting on Vercel/Netlify with Supabase integration
 
-**Current Status:** Backend infrastructure complete with automated data collection, database integration, and deployment tooling ready for production.
+**Current Status:** Supabase Edge Function handles all data collection and processing. GitHub Actions scheduled to run every 10 minutes. Frontend fetches data directly from Supabase with proper station names displayed.
 
 ## Data Source
 - **Entur GTFS-RT Trip Updates API**: Provides real-time trip updates with estimated arrival/departure times
@@ -18,77 +18,46 @@ This project aims to create a comprehensive dashboard visualizing train delay st
 
 ## Architecture Components
 
-### 1. Data Collection Script
-- **Technology**: Python
+### 1. Data Collection (Supabase Edge Function)
+- **Technology**: Deno/TypeScript with GTFS-RT protobuf parsing
 - **Responsibilities**:
-  - Run on personal server (e.g., Raspberry Pi or VPS)
-  - Fetch real-time data from Entur API every 30-60 seconds
-  - Process and calculate delay statistics
-  - Store aggregated data in PostgreSQL database
-  - Generate truncated JSON files with statistics
-  - Commit updated JSON files to GitHub repository
-- **Scheduling**: Automated execution via cron jobs using `run_data_fetcher.sh` and `setup_cron.sh` for 30-minute, hourly, or daily intervals
+  - Fetch real-time data from Entur API every 10 minutes via GitHub Actions
+  - Process and calculate delay statistics for Oslo region routes
+  - Store aggregated data directly in Supabase database
+  - Handle station name mapping for proper display
+  - Automatic error handling and retry logic
+- **Scheduling**: GitHub Actions workflow triggered every 10 minutes
 
 ### 2. Database
-- **Technology**: PostgreSQL (native or Docker)
-- **Deployment Options**:
-  - Docker Compose: `docker-compose.yml` with pgAdmin web interface
-  - Native installation: Manual setup with `setup_database.py`
+- **Technology**: Supabase (PostgreSQL) with Edge Functions
 - **Tables**:
-  - `stations`: Station codes, names, and coordinates for Oslo region routes
-  - `station_pair_delays`: Raw delay data between consecutive station pairs in Oslo region
-  - `daily_station_stats`: Aggregated daily delay statistics by station pair for Oslo region routes
-  - `daily_route_stats`: Aggregated daily delay statistics for entire routes (Drammen-Oslo, Oslo-Gardemoen)
-  - `hourly_station_stats`: Delay patterns by hour for each station pair in Oslo region
-  - `hourly_route_stats`: Delay patterns by hour for entire routes
-  - `peak_hour_stats`: Rush hour vs off-peak delay comparisons
-  - `reliability_stats`: On-time rates, consistency metrics, and recovery analysis
-  - `trend_stats`: Moving averages and seasonal pattern analysis
-  - `predictive_stats`: Delay probability forecasting and predictive insights
-  - `impact_stats`: Passenger impact estimates and economic cost calculations
-- `daily_route_stats`: Aggregated daily delay statistics for entire routes (Drammen-Oslo, Oslo-Gardemoen)
-- `hourly_station_stats`: Delay patterns by hour for each station pair in Oslo region
-- `hourly_route_stats`: Delay patterns by hour for entire routes
+  - `daily_stats`: Aggregated daily delay statistics by station pair with station names
+  - `hourly_stats`: Delay patterns by hour for each station pair
+  - `route_stats`: Aggregated daily delay statistics for entire routes
+  - `stations`: Station mapping table (ID to name translations)
 
-### 3. Data Storage (JSON)
-- **Format**: JSON files committed to GitHub repository
-- **Files**:
-  - `station_delays.json`: Station-pair specific delay statistics for Oslo region routes
-  - `route_delays.json`: Route-level aggregated delay statistics (Drammen-Oslo, Oslo-Gardemoen)
-  - `daily_stats.json`: Daily summaries for all station pairs and routes in Oslo region
-  - `hourly_stats.json`: Hourly patterns for all station pairs and routes in Oslo region
-  - `analytics_stats.json`: Advanced analytics including peak hour performance, reliability metrics, and trend analysis
-  - `predictive_stats.json`: Predictive insights and delay probability forecasting
-- **Update Frequency**: Daily commits with latest aggregated data
+### 3. Data Storage
+- **Primary**: Supabase PostgreSQL database with real-time subscriptions
+- **Station Names**: Proper station name mapping for user-friendly display
+- **Update Frequency**: Every 10 minutes via GitHub Actions scheduled runs
 
 ### 4. Frontend Dashboard
 - **Technology**: React 19 Single Page Application (SPA) with TypeScript
 - **Libraries**:
-  - Chart.js or D3.js for data visualization
-  - Axios or fetch for loading JSON files from GitHub repository
-  - Material-UI or Bootstrap for UI components
+  - Vite for build tooling
+  - Tailwind CSS for styling
+  - Supabase client for data fetching
+  - Chart.js/D3.js for data visualization (planned)
 - **Features**:
   - **View Selector**: Toggle between "Station Delays", "Route Average", and "Analytics" views
-  - **Station View**: Interactive charts showing delay minutes at each station along Oslo region routes
-  - **Route View**: Charts showing average delays across entire routes (Drammen-Oslo, Oslo-Gardemoen)
-  - **Analytics View**: Advanced statistics including delay patterns, reliability metrics, and trend analysis
-  - Fetch statistics directly from JSON files in the GitHub repository
-  - Time period selector (daily/hourly views)
-  - Historical trend analysis
-  - **Advanced Statistics**:
-    - Peak hour performance analysis (rush hour vs off-peak delays)
-    - Day-of-week trends (weekday vs weekend patterns)
-    - On-time rate calculations by route and station
-    - Delay consistency metrics (standard deviation analysis)
-    - Recovery rate analysis (time to return to normal service)
-    - Delay propagation mapping (upstream delay impacts)
-    - Passenger impact estimates (number affected by delays)
-    - Economic cost calculations (productivity loss from delays)
-    - Trend analysis (30-day moving averages, seasonal patterns)
-    - Weather correlation analysis (temperature/precipitation impact)
-    - Journey time variability metrics
-    - Performance rankings (most reliable stations/routes)
-    - Predictive insights (delay probability forecasting)
+  - **Station View**: Interactive display of delay statistics between station pairs with proper station names
+  - **Route View**: Charts showing average delays across entire routes with readable station names
+  - **Analytics View**: Advanced statistics and trend analysis (framework ready)
+  - Real-time data fetching from Supabase
+  - Time period filtering (today, 7 days, 30 days)
+  - Sorting options for delay data
+  - **Station Names**: Human-readable station names displayed instead of technical IDs
+- **Components Implemented**: ViewSelector, StationDelaysView, RouteAveragesView, AnalyticsView, TimeFilterSelector, SortSelector, StationCard, StationPairCard
 
 ### 5. Data Processing
 - **Delay Calculation**: Compare estimated arrival/departure times with scheduled times for each station pair
@@ -111,93 +80,48 @@ This project aims to create a comprehensive dashboard visualizing train delay st
 
 ## Project Files
 
-### Core Scripts
-- `data_fetcher.py`: Main data collection and processing script
-- `setup_database.py`: Database setup and table creation
-- `test_api_integration.py`: API integration testing suite
+### Core Components
+- `supabase/functions/fetch-train-data/`: Edge Function for data collection and processing
+- `frontend/`: React 19 TypeScript application with station name display
 
-### Deployment & Automation
-- `docker-compose.yml`: Docker Compose configuration for PostgreSQL + pgAdmin
-- `init-db.sql`: Database initialization script (runs automatically in Docker)
-- `run_data_fetcher.sh`: Cron job script for automated data collection
-- `setup_cron.sh`: Interactive cron job setup and management tool
+### Automation
+- `.github/workflows/`: GitHub Actions for scheduled data collection (every 10 minutes)
+- `SUPABASE_SETUP.md`: Supabase configuration guide
 
-### Configuration
-- `requirements.txt`: Python dependencies
-- `docker-env`: Environment variables for Docker deployment
-- `README.md`: Project documentation and setup instructions
-
-### Data Output
-- `tmp/`: Directory for generated JSON files
-  - `station_delays.json`: Raw station-pair delay data
-  - `daily_stats.json`: Daily aggregated statistics
-  - `hourly_stats.json`: Hourly delay patterns
-  - `route_stats.json`: Route-level aggregations
-- `logs/`: Application logs
-  - `cron.log`: Cron job execution logs
+### Frontend
+- `frontend/src/components/`: Dashboard components with station name rendering
+- `frontend/src/services/`: Data service layer with Supabase integration
+- `frontend/src/types.ts`: TypeScript interfaces for station data with name fields
 
 ## Implementation Details
 
-### Python Data Collection Script
+### Supabase Edge Function
 
 #### Dependencies
-- `psycopg2`: PostgreSQL adapter for Python
-- `requests`: For HTTP requests to Entur API
 - `gtfs-realtime-bindings`: For parsing GTFS-RT protobuf format
-- `gitpython`: For Git operations to commit JSON files
-- `python-crontab` or `schedule`: For scheduling (alternative to system cron)
-- `python-dotenv`: For environment variables (DB credentials)
-- `pandas`: For data processing and aggregation
+- `@supabase/supabase-js`: For database operations
+- Deno runtime for serverless execution
 
 #### Database Setup
-- **Technology**: PostgreSQL
-- **Setup Script**: `setup_database.py` - Manual PostgreSQL setup
-- **Docker Setup**: `docker-compose.yml` - Automated containerized database with pgAdmin
-- **Database Initialization**: `init-db.sql` - Automatic schema creation and data seeding
+- **Technology**: Supabase PostgreSQL
 - **Tables**:
-  - `stations`: Station codes, names, and coordinates for Oslo region routes
-  - `station_pair_delays`: Raw delay data between consecutive station pairs in Oslo region
-  - `daily_station_stats`: Aggregated daily delay statistics by station pair for Oslo region routes
-  - `daily_route_stats`: Aggregated daily delay statistics for entire routes (Drammen-Oslo, Oslo-Gardemoen)
-  - `hourly_station_stats`: Delay patterns by hour for each station pair in Oslo region
-  - `hourly_route_stats`: Delay patterns by hour for entire routes
-- **Environment**: PostgreSQL server (native or Docker), credentials configured in environment variables
+  - `daily_stats`: Aggregated daily delay statistics by station pair with station names
+  - `hourly_stats`: Hourly delay patterns by station pair
+  - `route_stats`: Daily delay statistics for entire routes
+  - `stations`: Station ID to name mapping table
 
-#### API Integration Testing
-- **Test Script**: `test_api_integration.py` - Comprehensive testing of Entur API connectivity and data processing
-- **Tests Include**:
-  - API endpoint accessibility and GTFS-RT parsing
-  - Station pair delay extraction from real-time data
-  - Complete data processing pipeline validation
-- **Usage**: Run `python3 test_api_integration.py` to validate API integration before deployment
-
-#### Deployment and Automation
-- **Docker Setup**: `docker-compose.yml` - Containerized PostgreSQL database with pgAdmin web interface
-  - Database: `train_delays` with user `train_delays_user`
-  - pgAdmin: Accessible at http://localhost:8080 (admin@traindelays.local / admin123)
-  - Automatic schema initialization via `init-db.sql`
-- **Cron Job Automation**: `run_data_fetcher.sh` and `setup_cron.sh`
-  - `run_data_fetcher.sh`: Executable script for periodic data collection
-  - `setup_cron.sh`: Interactive setup tool for configuring automated execution
-  - Supports 30-minute, hourly, and daily schedules
-  - Comprehensive logging to `logs/cron.log`
-
-#### Script Structure
-1. **Configuration**: Load environment variables for API endpoints, DB connection, Git repo path
-2. **Data Fetching**:
+#### Function Structure
+1. **Data Fetching**:
    - Make request to Entur GTFS-RT trip updates API
    - Parse protobuf response for trip updates and stop time updates
-3. **Data Processing**:
+2. **Data Processing**:
    - Extract station-pair delays from trip updates
-   - Filter for Drammen-Gardemoen corridor routes
-   - Insert raw station-pair delay data into database
+   - Filter for Oslo region routes (L1, L2, L12, L13, L21, R10, R20, FLY1, FLY2)
+   - Map station IDs to human-readable names
    - Calculate daily and hourly aggregates for station pairs and routes
-4. **JSON Generation**:
-   - Query aggregated data from database
-   - Generate `station_delays.json`, `route_delays.json`, `daily_stats.json`, `hourly_stats.json`
-   - Include station-pair data and route aggregates
-5. **Git Commit**:
-   - Use GitPython to add, commit, and push JSON files to GitHub
+3. **Data Storage**:
+   - Insert processed data directly into Supabase tables
+4. **Scheduling**: Triggered by GitHub Actions every 10 minutes
    - Commit message with timestamp
 
 #### Scheduling
@@ -219,19 +143,17 @@ This project aims to create a comprehensive dashboard visualizing train delay st
 - Keep all historical raw data in `realtime_data` for comprehensive analysis
 - Maintain aggregated data indefinitely in `daily_stats`, `route_stats`, `hourly_stats`
 - JSON files contain aggregated data for frontend consumption
-- **Data Collection**: Python script executed periodically by cron jobs on personal server
-- **Data Storage**: JSON files automatically committed to GitHub repository
-- **Frontend**: React SPA deployed on GitHub Pages or Netlify, fetching JSON data directly from the repository
-- **CI/CD**: GitHub Actions for frontend deployment; script handles data commits
+- **Data Collection**: Supabase Edge Function executed every 10 minutes via GitHub Actions
+- **Data Processing**: Serverless aggregation with station name mapping in Supabase
+- **Frontend**: React SPA deployed on Vercel/Netlify, displaying station names from Supabase
+- **CI/CD**: GitHub Actions for both data collection scheduling and frontend deployment
 
 ## Challenges
-- Parsing GTFS-RT protobuf format for station-pair delay extraction across multiple Oslo region routes
-- Mapping trip updates to specific station pairs in the Oslo region (Drammen-Oslo, Oslo-Gardemoen, connecting lines)
-- Accurate delay calculation from stop time updates for bidirectional routes
-- Aggregating station-pair data into meaningful route statistics for multiple route types
-- Handling data gaps and incomplete trip information across expanded coverage area
-- Optimizing database queries for station-pair aggregations
-- Ensuring consistent station naming and ordering along routes
+- **GTFS-RT Parsing in Deno**: Adapting GTFS-RT protobuf parsing to Deno runtime
+- **Station Name Mapping**: Ensuring consistent station ID to name translations
+- **GitHub Actions Scheduling**: Reliable 10-minute interval execution
+- **Edge Function Performance**: Optimizing serverless function for data processing
+- **Real-time Data Processing**: Handling live train data updates efficiently
 
 ## Detailed Implementation Plan
 
@@ -308,70 +230,81 @@ This project aims to create a comprehensive dashboard visualizing train delay st
 
 ### Technical Implementation Details
 
-#### Station Data Structure
-```json
-{
-  "station_code": "OSL",
-  "station_name": "Oslo S",
-  "avg_arrival_delay": 3.2,
-  "avg_departure_delay": 2.8,
-  "total_delays": 150,
-  "delayed_percentage": 15.2,
-  "date": "2026-01-05"
+#### Station Pair Data Structure
+```typescript
+interface StationDelay {
+  date: string;
+  from_stop: string;        // Station ID (technical)
+  from_stop_name: string;   // Human-readable station name
+  to_stop: string;          // Station ID (technical)
+  to_stop_name: string;     // Human-readable station name
+  avg_delay_minutes: number;
+  total_delay_minutes: number;
+  delay_count: number;
+  is_relevant: boolean;
 }
 ```
 
 #### Route Data Structure
-```json
-{
-  "route_name": "Drammen-Gardemoen",
-  "avg_delay_minutes": 4.5,
-  "total_stations": 9,
-  "total_delays": 450,
-  "delayed_percentage": 18.3,
-  "date": "2026-01-05"
+```typescript
+interface RouteStats {
+  date: string;
+  route_id: string;
+  route_name: string;
+  avg_delay_minutes: number;
+  total_delay_minutes: number;
+  delay_count: number;
 }
 ```
 
-#### Station Pair Data Structure
-```json
-{
-  "from_station": "Drammen",
-  "to_station": "Oslo S",
-  "avg_delay_minutes": 2.8,
-  "total_trips": 120,
-  "delayed_trips": 18,
-  "delay_percentage": 15.0,
-  "date": "2026-01-05"
+#### Hourly Statistics Structure
+```typescript
+interface HourlyStats {
+  hour: number;
+  from_stop: string;        // Station ID (technical)
+  from_stop_name: string;   // Human-readable station name
+  to_stop: string;          // Station ID (technical)
+  to_stop_name: string;     // Human-readable station name
+  avg_delay_minutes: number;
+  total_delay_minutes: number;
+  delay_count: number;
+  is_relevant: boolean;
 }
 ```
 
 #### Frontend State Management
-- Use React hooks for view selection
-- Cache JSON data in local storage for performance
-- Implement loading states and error handling
+- React hooks for view selection and filtering
+- Supabase real-time subscriptions for live data updates
+- Station name mapping for user-friendly display (IDs stored internally, names shown to users)
+- Local state management for UI interactions
+- Error handling and loading states implemented
 
 ## Next Steps
 
-### Phase 1: Station/Route Discovery and Data Collection ✅ COMPLETED
-1. ✅ Research and document all stations/routes in Oslo region (Drammen-Oslo, Oslo-Gardemoen, Oslo-Sandvika, Oslo-Asker, and opposite directions)
-2. ✅ Update Python data fetcher to collect station-pair delay data for all major Oslo region routes
-3. ✅ Modify database schema for station-based statistics (database setup script created, ready for deployment)
-4. ✅ Generate initial JSON files with mock station/route data for expanded coverage
+### Phase 1: Supabase Edge Function Development ✅ COMPLETED
+1. ✅ Implement Deno Edge Function with GTFS-RT protobuf parsing
+2. ✅ Add Entur API integration for live data collection
+3. ✅ Create station ID to name mapping functionality
+4. ✅ Implement data aggregation logic for daily/hourly/route statistics
+5. ✅ Set up Supabase database tables with proper schema
 
-### Phase 2: Data Processing (Week 3) 🔄 IN PROGRESS
-1. ✅ Implement station-level and route-level aggregation logic
-2. ✅ Update JSON generation to support both views
-3. 🔄 Test data processing pipeline with real API data (network connectivity issues in development environment, API integration code ready)
+### Phase 2: GitHub Actions Automation 🔄 IN PROGRESS
+1. ✅ Create GitHub Actions workflow for scheduled execution
+2. ✅ Configure 10-minute interval scheduling
+3. ✅ Set up proper authentication for Supabase Edge Function calls
+4. 🔄 Test automated execution and error handling
+5. 🔄 Monitor execution logs and performance
 
-### Phase 3: Frontend Development (Week 4-5)
-1. ⏳ Build React 19 SPA with TypeScript
-2. ⏳ Implement station view with per-station delay charts
-3. ⏳ Implement route view with average delay visualization
-4. ⏳ Add view selector and time period controls
+### Phase 3: Frontend Station Name Display ✅ COMPLETED
+1. ✅ Update data fetching to include station names from Supabase
+2. ✅ Modify components to display human-readable station names
+3. ✅ Ensure proper sorting and filtering with station names
+4. ✅ Test all views with station name display
+5. ✅ Verify responsive design with longer station names
 
-### Phase 4: Integration and Deployment (Week 6)
-1. ✅ Set up cron job automation scripts and Docker database deployment
-2. ⏳ Deploy frontend to GitHub Pages
-3. ⏳ Test complete system integration
-4. ⏳ Monitor and optimize performance
+### Phase 4: Production Deployment and Monitoring 🔄 PENDING
+1. 🔄 Deploy Supabase Edge Function to production
+2. 🔄 Set up monitoring for GitHub Actions execution
+3. 🔄 Configure error notifications and alerting
+4. 🔄 Optimize Edge Function performance
+5. 🔄 Set up frontend deployment with proper environment variables

@@ -1,5 +1,4 @@
 import type { RouteStats } from '../types';
-import { getDelayColor } from '../types';
 
 interface RouteCardProps {
   route: RouteStats;
@@ -7,11 +6,10 @@ interface RouteCardProps {
 }
 
 const RouteCard = ({ route, routeType }: RouteCardProps) => {
-  const delayColor = getDelayColor(route.avg_delay_minutes);
   const delayPercentage = ((route.delay_count * 0.15) / route.delay_count * 100); // Estimated
 
   return (
-    <div className={`p-4 rounded-lg border-l-4 bg-gray-50 dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow ${delayColor.border}`}>
+    <div className="p-4 rounded-lg border bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow border-gray-200 dark:border-gray-700">
       <div className="flex justify-between items-start mb-3">
         <div>
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{route.route_name}</h3>
@@ -19,7 +17,7 @@ const RouteCard = ({ route, routeType }: RouteCardProps) => {
             {routeType} • {route.route_id}
           </p>
         </div>
-        <span className={`px-2 py-1 rounded text-sm font-medium ${delayColor.bg} ${delayColor.text}`}>
+        <span className="px-2 py-1 rounded text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
           {route.avg_delay_minutes.toFixed(1)} min
         </span>
       </div>
@@ -27,7 +25,7 @@ const RouteCard = ({ route, routeType }: RouteCardProps) => {
       <div className="grid grid-cols-2 gap-4 text-sm mb-3">
         <div>
           <span className="text-gray-600 dark:text-gray-400">Gjennomsnittlig forsinkelse:</span>
-          <span className={`font-semibold ml-2 ${delayColor.text}`}>
+          <span className="font-semibold ml-2 text-gray-900 dark:text-white">
             {route.avg_delay_minutes.toFixed(1)} min
           </span>
         </div>
@@ -52,7 +50,7 @@ const RouteCard = ({ route, routeType }: RouteCardProps) => {
         </div>
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
           <div
-            className={`h-2 rounded-full ${route.avg_delay_minutes < 3 ? 'bg-green-500' : route.avg_delay_minutes < 5 ? 'bg-yellow-500' : 'bg-red-500'}`}
+            className="h-2 rounded-full bg-gray-400 dark:bg-gray-500"
             style={{ width: `${Math.min(delayPercentage, 100)}%` }}
           ></div>
         </div>

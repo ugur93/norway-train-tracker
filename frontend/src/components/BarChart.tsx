@@ -14,7 +14,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, title, height = 300 }) => {
   const maxValue = Math.max(...data.map(d => d.value));
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
       {title && <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{title}</h3>}
       <div className="relative" style={{ height }}>
         <div className="flex items-end justify-center space-x-2 h-full">
@@ -22,7 +22,7 @@ const BarChart: React.FC<BarChartProps> = ({ data, title, height = 300 }) => {
             <div key={index} className="flex flex-col items-center flex-1 max-w-12">
               <div className="w-full flex flex-col items-center mb-2">
                 <div
-                  className={`w-full rounded-t ${item.color || 'bg-blue-500'} transition-all duration-300 hover:opacity-80`}
+                  className={`w-full rounded-t bg-gray-400 dark:bg-gray-500 transition-all duration-300 hover:opacity-80`}
                   style={{
                     height: `${(item.value / maxValue) * (height - 60)}px`,
                     minHeight: '4px'
