@@ -108,7 +108,8 @@ const StationDelaysView = () => {
   };
 
   const getStationPairs = (): StationDelay[] => {
-    return sortData(filterDataByTime(data.filter(item => item.is_relevant)));
+    // Show all station pairs, not just the "relevant" ones
+    return sortData(filterDataByTime(data));
   };
 
   const individualStations = getIndividualStations();
