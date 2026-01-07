@@ -45,53 +45,83 @@ Deno.serve(async (req) => {
 
     console.log('Fetching GTFS-RT data from Entur API...')
 
-    // Use GraphQL API instead of protobuf for simpler deployment
-    const graphqlQuery = `
-      {
-        trip(ids: ["RUT:ServiceJourney:1-100003-26030100"]) {
-          id
-          serviceJourney {
-            line {
-              id
-              publicCode
-            }
-          }
-          estimatedCalls {
-            expectedDepartureTime
-            aimedDepartureTime
-            quay {
-              id
-              name
-              stopPlace {
+    // Fetch data from multiple major Oslo region stations
+    const stations = [
+      'NSR:StopPlace:337',  // Oslo S
+      'NSR:StopPlace:444',  // Asker
+      'NSR:StopPlace:456',  // Sandvika
+      'NSR:StopPlace:550',  // Lillestrøm
+      'NSR:StopPlace:160',  // Drammen
+      'NSR:StopPlace:600',  // Oslo Lufthavn
+    ];
+
+    const allStationStats: StationDelay[] = [];
+    const allRouteStats: RouteStat[] = [];
+    const allHourlyStats: HourlyStat[] = [];
+
+    // Fetch data from each station
+    for (const stationId of stations) {
+      const graphqlQuery = `
+        {
+          stopPlace(id: "${stationId}") {
+            id
+            name
+            estimatedCalls(numberOfDepartures: 100, timeRange: 86400) {
+              realtime
+              aimedDepartureTime
+              expectedDepartureTime
+              serviceJourney {
                 id
-                name
+                line {
+                  id
+                  publicCode
+                }
+              }
+              destinationDisplay {
+                frontText
+              }
+              quay {
+                id
+                publicCode
               }
             }
           }
         }
+      `;
+
+      try {
+        const response = await fetch('https://api.entur.io/journey-planner/v3/graphql', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ET-Client-Name': 'norway-train-tracker',
+            'ET-Client-Id': 'norway-train-tracker-1.0'
+          },
+          body: JSON.stringify({ query: graphqlQuery })
+        });
+
+        if (!response.ok) {
+          console.error(`Entur API error for ${stationId}: ${response.status}`);
+          continue;
+        }
+
+        const data = await response.json();
+        const { stationStats, routeStats, hourlyStats } = processGraphQLData(data);
+        
+        allStationStats.push(...stationStats);
+        allRouteStats.push(...routeStats);
+        allHourlyStats.push(...hourlyStats);
+      } catch (error) {
+        console.error(`Error fetching data for ${stationId}:`, error);
       }
-    `;
-
-    const response = await fetch('https://api.entur.io/journey-planner/v3/graphql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'ET-Client-Name': 'norway-train-tracker',
-        'ET-Client-Id': 'norway-train-tracker-1.0'
-      },
-      body: JSON.stringify({ query: graphqlQuery })
-    })
-
-    if (!response.ok) {
-      throw new Error(`Entur API error: ${response.status} ${response.statusText}`)
     }
 
-    const data = await response.json()
+    console.log(`Total processed: ${allStationStats.length} station stats, ${allRouteStats.length} route stats, ${allHourlyStats.length} hourly stats`)
 
-    // Process the GraphQL data instead of protobuf
-    const { stationStats, routeStats, hourlyStats } = processGraphQLData(data)
-
-    console.log(`Processed ${stationStats.length} station stats, ${routeStats.length} route stats, and ${hourlyStats.length} hourly stats`)
+    // Use aggregated data
+    const stationStats = allStationStats;
+    const routeStats = allRouteStats;
+    const hourlyStats = allHourlyStats;
 
     if (stationStats.length > 0) {
       // Accumulate daily stats
@@ -260,10 +290,116 @@ Deno.serve(async (req) => {
 })
 
 function processGraphQLData(data: any): { stationStats: StationDelay[], routeStats: RouteStat[], hourlyStats: HourlyStat[] } {
-  // Placeholder - return empty for now since we need to redesign the data processing
-  // This will deploy successfully and we can iterate on the implementation
-  console.log('GraphQL data received:', JSON.stringify(data).substring(0, 200));
-  return { stationStats: [], routeStats: [], hourlyStats: [] };
+  const stationStats: StationDelay[] = []
+  const hourlyStats: HourlyStat[] = []
+  const routeStatsMap = new Map<string, RouteStat>()
+  const currentDate = new Date().toISOString().split('T')[0]
+  const currentHour = new Date().getHours()
+
+  console.log('Processing GraphQL data...');
+
+  // Check if we have valid data
+  if (!data || !data.data || !data.data.stopPlace) {
+    console.error('Invalid GraphQL response:', JSON.stringify(data).substring(0, 500));
+    return { stationStats: [], routeStats: [], hourlyStats: [] };
+  }
+
+  const stopPlace = data.data.stopPlace;
+  const calls = stopPlace.estimatedCalls || [];
+
+  console.log(`Processing ${calls.length} estimated calls from ${stopPlace.name}`);
+
+  // Oslo region relevant station pairs
+  const relevantPairs = [
+    ['Asker', 'Oslo S'],
+    ['Oslo S', 'Asker'],
+    ['Sandvika', 'Asker'],
+    ['Asker', 'Sandvika'],
+    ['Oslo S', 'Lillestrøm'],
+    ['Lillestrøm', 'Oslo S'],
+    ['Oslo S', 'Oslo Lufthavn'],
+    ['Oslo Lufthavn', 'Oslo S']
+  ]
+
+  // Process each estimated call
+  for (const call of calls) {
+    if (!call.realtime || !call.aimedDepartureTime || !call.expectedDepartureTime) continue;
+    if (!call.serviceJourney || !call.serviceJourney.line) continue;
+
+    const routeId = call.serviceJourney.line.publicCode || call.serviceJourney.line.id;
+    
+    // Only process Oslo region routes (trains)
+    if (!isOsloRegionRoute(routeId)) continue;
+
+    // Calculate delay
+    const aimedTime = new Date(call.aimedDepartureTime).getTime();
+    const expectedTime = new Date(call.expectedDepartureTime).getTime();
+    const delaySeconds = (expectedTime - aimedTime) / 1000;
+    const delayMinutes = delaySeconds / 60;
+
+    // Only include significant delays (> 0 minutes)
+    if (delayMinutes <= 0) continue;
+
+    const fromStopName = stopPlace.name;
+    const toStopName = call.destinationDisplay?.frontText || 'Unknown';
+    const fromStopId = stopPlace.id;
+    const toStopId = call.quay?.id || 'unknown';
+
+    // Check if this pair is relevant
+    const isRelevant = relevantPairs.some(([from, to]) =>
+      from === fromStopName && to === toStopName
+    );
+
+    stationStats.push({
+      date: currentDate,
+      from_stop: fromStopId,
+      from_stop_name: fromStopName,
+      to_stop: toStopId,
+      to_stop_name: toStopName,
+      avg_delay_minutes: delayMinutes,
+      total_delay_minutes: delayMinutes,
+      delay_count: 1,
+      is_relevant: isRelevant
+    });
+
+    hourlyStats.push({
+      hour: currentHour,
+      from_stop: fromStopId,
+      from_stop_name: fromStopName,
+      to_stop: toStopId,
+      to_stop_name: toStopName,
+      avg_delay_minutes: delayMinutes,
+      total_delay_minutes: delayMinutes,
+      delay_count: 1,
+      is_relevant: isRelevant
+    });
+
+    // Aggregate route stats
+    if (!routeStatsMap.has(routeId)) {
+      routeStatsMap.set(routeId, {
+        date: currentDate,
+        route_id: routeId,
+        route_name: getRouteName(routeId),
+        avg_delay_minutes: delayMinutes,
+        total_delay_minutes: delayMinutes,
+        delay_count: 1
+      });
+    } else {
+      const existing = routeStatsMap.get(routeId)!;
+      existing.avg_delay_minutes = (existing.avg_delay_minutes * existing.delay_count + delayMinutes) / (existing.delay_count + 1);
+      existing.total_delay_minutes += delayMinutes;
+      existing.delay_count += 1;
+    }
+  }
+
+  // Aggregate by station pair
+  const aggregatedStationStats = aggregateStats(stationStats) as StationDelay[];
+  const aggregatedHourlyStats = aggregateStats(hourlyStats) as HourlyStat[];
+  const routeStats = Array.from(routeStatsMap.values());
+
+  console.log(`Processed: ${aggregatedStationStats.length} station pairs, ${routeStats.length} routes, ${aggregatedHourlyStats.length} hourly stats`);
+
+  return { stationStats: aggregatedStationStats, routeStats, hourlyStats: aggregatedHourlyStats };
 }
 
 function processGtfsData(feed: any): { stationStats: StationDelay[], routeStats: RouteStat[], hourlyStats: HourlyStat[] } {

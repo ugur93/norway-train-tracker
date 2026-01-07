@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { StationDelay, StationViewType, TimeFilter, SortOption } from '../types';
 import { dataService } from '../services/dataService';
-import TimeFilterSelector from './TimeFilterSelector';
-import SortSelector from './SortSelector';
 import StationCard from './StationCard';
 import StationPairCard from './StationPairCard';
 
