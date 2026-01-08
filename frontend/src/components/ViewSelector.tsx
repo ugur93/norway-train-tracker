@@ -8,8 +8,8 @@ interface ViewSelectorProps {
 const ViewSelector = ({ currentView, onViewChange }: ViewSelectorProps) => {
   const views = [
     { id: 'stations' as ViewType, label: '📍 Stasjoner', description: 'Forsinkelser per stasjon' },
-    { id: 'routes' as ViewType, label: '🛤️ Ruter', description: 'Gjennomsnitt per rute' },
-    { id: 'analytics' as ViewType, label: '📈 Analyse', description: 'Trender og innsikt' },
+    { id: 'routes' as ViewType, label: '🛤️ Ruter', description: 'Gjennomsnittlig forsinkelse per rute' },
+    { id: 'analytics' as ViewType, label: '📈 Analyse', description: 'Trender og analyser' },
   ];
 
   return (

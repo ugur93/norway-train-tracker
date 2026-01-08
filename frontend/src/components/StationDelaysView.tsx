@@ -75,14 +75,25 @@ const StationDelaysView = () => {
     const filtered = filterDataByTime(data);
     const stationMap = new Map<string, { totalDelay: number; count: number }>();
 
+    // Include all stations from both from_stop and to_stop
     filtered.forEach(item => {
-      const stationName = item.from_stop_name || item.from_stop;
-      if (!stationMap.has(stationName)) {
-        stationMap.set(stationName, { totalDelay: 0, count: 0 });
+      // Add from_stop
+      const fromStationName = item.from_stop_name || item.from_stop;
+      if (!stationMap.has(fromStationName)) {
+        stationMap.set(fromStationName, { totalDelay: 0, count: 0 });
       }
-      const station = stationMap.get(stationName)!;
-      station.totalDelay += item.avg_delay_minutes * item.delay_count;
-      station.count += item.delay_count;
+      const fromStation = stationMap.get(fromStationName)!;
+      fromStation.totalDelay += item.avg_delay_minutes * item.delay_count;
+      fromStation.count += item.delay_count;
+      
+      // Add to_stop
+      const toStationName = item.to_stop_name || item.to_stop;
+      if (!stationMap.has(toStationName)) {
+        stationMap.set(toStationName, { totalDelay: 0, count: 0 });
+      }
+      const toStation = stationMap.get(toStationName)!;
+      toStation.totalDelay += item.avg_delay_minutes * item.delay_count;
+      toStation.count += item.delay_count;
     });
 
     return Array.from(stationMap.entries())

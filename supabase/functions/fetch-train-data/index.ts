@@ -45,14 +45,23 @@ Deno.serve(async (req) => {
 
     console.log('Fetching GTFS-RT data from Entur API...')
 
-    // Fetch data from multiple major Oslo region stations
+    // Fetch data from all stations on Oslo S <-> Drammen and Oslo S <-> Gardemoen routes
     const stations = [
+      // Oslo S
       'NSR:StopPlace:337',  // Oslo S
-      'NSR:StopPlace:444',  // Asker
-      'NSR:StopPlace:456',  // Sandvika
-      'NSR:StopPlace:550',  // Lillestrøm
-      'NSR:StopPlace:160',  // Drammen
-      'NSR:StopPlace:600',  // Oslo Lufthavn
+      
+      // Oslo S <-> Drammen route
+      'NSR:StopPlace:58366', // Skøyen
+      'NSR:StopPlace:418',   // Lysaker
+      'NSR:StopPlace:456',   // Sandvika
+      'NSR:StopPlace:444',   // Asker
+      'NSR:StopPlace:160',   // Drammen
+      
+      // Oslo S <-> Gardemoen route (via Lillestrøm)
+      'NSR:StopPlace:598',   // Oslo Lufthavn Stasjon
+      'NSR:StopPlace:550',   // Lillestrøm
+      'NSR:StopPlace:58367', // Dal
+      'NSR:StopPlace:600',   // Oslo Lufthavn (Gardermoen)
     ];
 
     const allStationStats: StationDelay[] = [];
@@ -622,18 +631,26 @@ function getRouteName(routeId: string): string {
 const stopNameMap: { [key: string]: string } = {
   // Major Oslo stations
   'NSR:StopPlace:337': 'Oslo S',
+  
+  // Oslo S <-> Drammen route
+  'NSR:StopPlace:58366': 'Skøyen',
+  'NSR:StopPlace:418': 'Lysaker',
+  'NSR:StopPlace:456': 'Sandvika',
+  'NSR:StopPlace:444': 'Asker',
   'NSR:StopPlace:160': 'Drammen',
+  
+  // Oslo S <-> Gardemoen route
+  'NSR:StopPlace:598': 'Oslo Lufthavn Stasjon',
+  'NSR:StopPlace:550': 'Lillestrøm',
+  'NSR:StopPlace:58367': 'Dal',
+  'NSR:StopPlace:600': 'Oslo Lufthavn',
+  
+  // Other major stations
   'NSR:StopPlace:588': 'Ski',
-  'NSR:StopPlace:598': 'Stabekk',
   'NSR:StopPlace:220': 'Halden',
   'NSR:StopPlace:416': 'Moss',
   'NSR:StopPlace:548': 'Sarpsborg',
   'NSR:StopPlace:196': 'Fredrikstad',
-  
-  // Akershus region
-  'NSR:StopPlace:444': 'Asker',
-  'NSR:StopPlace:456': 'Sandvika',
-  'NSR:StopPlace:550': 'Lillestrøm',
   'NSR:StopPlace:596': 'Spikkestad',
   'NSR:StopPlace:165': 'Eidsvoll',
   'NSR:StopPlace:425': 'Mysen',
@@ -651,9 +668,6 @@ const stopNameMap: { [key: string]: string } = {
   
   // Telemark region
   'NSR:StopPlace:590': 'Skien',
-  
-  // Airport
-  'NSR:StopPlace:600': 'Oslo Lufthavn',
   
   // International (may not have NSR IDs, but included for completeness)
   'NSR:StopPlace:999': 'Göteborg'  // Placeholder - may need different ID format
