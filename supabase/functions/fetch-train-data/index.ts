@@ -106,6 +106,13 @@ Deno.serve(async (req) => {
         }
 
         const data = await response.json();
+        
+        // Check if the response contains valid data before processing
+        if (!data || !data.data || !data.data.stopPlace) {
+          console.warn(`No valid stopPlace data for ${stationId}, skipping...`);
+          continue;
+        }
+        
         const { stationStats, routeStats, hourlyStats } = processGraphQLData(data);
         
         allStationStats.push(...stationStats);
