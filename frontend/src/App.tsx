@@ -1,14 +1,65 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { ViewType, TimeFilter, SystemHealth, RouteWithPunctuality, StationDelay } from './types';
 import { dataService } from './services/dataService';
 import { getDelayColor, getPunctualityColor, calculatePunctuality, getRouteTypeIcon } from './types';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Legend } from 'recharts';
 import './App.css';
+
+// Helper to extract start and end stations from route
+// Uses API fields if available, falls back to parsing route_name
+const getRouteEndpoints = (route: { start_station?: string; end_station?: string; route_name: string }): { start: string; end: string } => {
+  // Use API fields if available
+  if (route.start_station && route.end_station) {
+    return { start: route.start_station, end: route.end_station };
+  }
+  // Fallback: parse from route_name (e.g., "Kongsberg-Oslo S-Eidsvoll")
+  const parts = route.route_name.split('-').map(p => p.trim());
+  if (parts.length >= 2) {
+    return { start: parts[0], end: parts[parts.length - 1] };
+  }
+  return { start: route.route_name, end: '' };
+};
+
+// Search bar component - defined outside App to prevent re-creation on every render
+const SearchBar = ({
+  placeholder,
+  value,
+  onChange
+}: {
+  placeholder: string;
+  value: string;
+  onChange: (value: string) => void;
+}) => (
+  <div className="relative px-4 pb-3">
+    <div className="relative">
+      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#94a3b8] text-xl">
+        search
+      </span>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full h-11 pl-10 pr-10 rounded-xl bg-slate-100 border border-slate-200 text-[#0f172a] placeholder-[#94a3b8] text-sm focus:outline-none focus:ring-2 focus:ring-[#135bec]/30 focus:border-[#135bec] transition-all"
+      />
+      {value && (
+        <button
+          onClick={() => onChange('')}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#64748b]"
+        >
+          <span className="material-symbols-outlined text-xl">close</span>
+        </button>
+      )}
+    </div>
+  </div>
+);
 
 function App() {
   const [activeView, setActiveView] = useState<ViewType>('overview');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('today');
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Data states
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
@@ -63,24 +114,76 @@ function App() {
     return `${minutes} minutter siden`;
   };
 
-  // Filter data by time
+  // Filter data by time and search
   const getFilteredRoutes = () => {
     const filtered = dataService.filterByTime(allRoutes, timeFilter);
-    return dataService.aggregateRouteStats(filtered)
+    let aggregated = dataService.aggregateRouteStats(filtered)
       .sort((a, b) => b.avg_delay_minutes - a.avg_delay_minutes);
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      aggregated = aggregated.filter(r =>
+        r.route_id.toLowerCase().includes(query) ||
+        r.route_name.toLowerCase().includes(query)
+      );
+    }
+    return aggregated;
   };
 
   const getFilteredStations = () => {
     const filtered = dataService.filterByTime(allStations, timeFilter);
-    return dataService.aggregateStationDelays(filtered)
+    let aggregated = dataService.aggregateStationDelays(filtered)
       .sort((a, b) => b.avg_delay_minutes - a.avg_delay_minutes);
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      aggregated = aggregated.filter(s =>
+        s.from_stop_name.toLowerCase().includes(query) ||
+        s.to_stop_name.toLowerCase().includes(query)
+      );
+    }
+    return aggregated;
   };
+
+  // Get daily data for charts
+  const getDailyChartData = useMemo(() => {
+    const filtered = dataService.filterByTime(allStations, timeFilter);
+    const byDate = new Map<string, { date: string; avgDelay: number; totalTrips: number; delayedTrips: number }>();
+
+    for (const station of filtered) {
+      const date = station.date;
+      if (!byDate.has(date)) {
+        byDate.set(date, {
+          date,
+          avgDelay: 0,
+          totalTrips: 0,
+          delayedTrips: 0
+        });
+      }
+      const existing = byDate.get(date)!;
+      existing.totalTrips += station.total_trips;
+      existing.delayedTrips += station.delay_count;
+      existing.avgDelay = existing.delayedTrips > 0
+        ? (existing.avgDelay * (existing.delayedTrips - station.delay_count) + station.avg_delay_minutes * station.delay_count) / existing.delayedTrips
+        : 0;
+    }
+
+    return Array.from(byDate.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map(d => ({
+        ...d,
+        date: new Date(d.date).toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit' }),
+        avgDelay: Math.round(d.avgDelay * 10) / 10
+      }));
+  }, [allStations, timeFilter]);
 
   // Render Overview View
   const renderOverview = () => (
     <>
+      <SearchBar placeholder="Søk etter rute eller stasjon..." value={searchQuery} onChange={setSearchQuery} />
+
       {/* System Health Cards */}
-      <div className="px-4 pt-4 pb-2">
+      <div className="px-4 pt-2 pb-2">
         <h2 className="text-[#0f172a] text-xl font-bold leading-tight">Systemhelse</h2>
       </div>
 
@@ -147,6 +250,7 @@ function App() {
         {topRoutes.slice(0, 5).map((route, index) => {
           const punctuality = calculatePunctuality(route.total_trips, route.on_time_trips);
           const delayColor = getDelayColor(route.avg_delay_minutes);
+          const endpoints = getRouteEndpoints(route);
 
           return (
             <div
@@ -159,16 +263,17 @@ function App() {
                     {getRouteTypeIcon(route.route_id)}
                   </span>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#0f172a]">{route.route_id}</p>
-                  <p className="text-xs text-[#64748b]">{route.route_name}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-[#0f172a]">{route.route_id}</p>
+                    <span className="text-xs text-[#94a3b8]">•</span>
+                    <p className="text-xs text-[#64748b] truncate">{endpoints.start} → {endpoints.end}</p>
+                  </div>
+                  <p className="text-xs text-[#64748b]">{punctuality}% i rute • {route.total_trips} avganger</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className={`text-sm font-bold ${delayColor.text}`}>+{route.avg_delay_minutes.toFixed(1)}m</p>
-                  <p className="text-xs text-[#64748b]">{punctuality}% i rute</p>
-                </div>
+              <div className={`px-2 py-1 rounded-lg ${delayColor.bg}`}>
+                <span className={`text-sm font-bold ${delayColor.text}`}>+{route.avg_delay_minutes.toFixed(1)}m</span>
               </div>
             </div>
           );
@@ -222,48 +327,77 @@ function App() {
 
     return (
       <>
-        <div className="px-4 pt-4 pb-2">
+        <SearchBar placeholder="Søk etter rute (f.eks. L1, R10)..." value={searchQuery} onChange={setSearchQuery} />
+
+        <div className="px-4 pt-2 pb-2">
           <h2 className="text-[#0f172a] text-xl font-bold leading-tight">Alle ruter</h2>
           <p className="text-[#64748b] text-sm">{filteredRoutes.length} ruter</p>
         </div>
 
-        <div className="flex flex-col gap-2 px-4 pb-8">
+        <div className="flex flex-col gap-3 px-4 pb-8">
           {filteredRoutes.map((route, index) => {
             const punctuality = calculatePunctuality(route.total_trips, route.on_time_trips);
             const delayColor = getDelayColor(route.avg_delay_minutes);
             const punctualityColor = getPunctualityColor(punctuality);
+            const endpoints = getRouteEndpoints(route);
 
             return (
               <div
                 key={`${route.route_id}-${index}`}
                 className="flex flex-col gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200"
               >
-                <div className="flex items-start justify-between">
+                {/* Route header with code and icon */}
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-full bg-[#135bec]/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[#135bec] text-xl">
+                    <div className="h-10 w-10 rounded-lg bg-[#135bec] flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">{route.route_id}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[#64748b] text-lg">
                         {getRouteTypeIcon(route.route_id)}
                       </span>
+                      <span className="text-xs text-[#64748b] font-medium">
+                        {route.route_id.startsWith('L') ? 'Lokaltog' : route.route_id.startsWith('R') ? 'Regiontog' : 'Flytoget'}
+                      </span>
                     </div>
-                    <div>
-                      <p className="text-base font-bold text-[#0f172a]">{route.route_id}</p>
-                      <p className="text-sm text-[#64748b]">{route.route_name}</p>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full ${delayColor.bg}`}>
+                    <span className={`text-sm font-bold ${delayColor.text}`}>+{route.avg_delay_minutes.toFixed(1)}m</span>
+                  </div>
+                </div>
+
+                {/* Route: Start → End stations */}
+                <div className="flex items-center gap-3 py-2 px-3 bg-white rounded-lg border border-slate-100">
+                  <div className="flex flex-col items-center">
+                    <div className="w-3 h-3 rounded-full bg-[#135bec] border-2 border-white shadow"></div>
+                    <div className="w-0.5 h-6 bg-slate-300"></div>
+                    <div className="w-3 h-3 rounded-full bg-[#0bda5e] border-2 border-white shadow"></div>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-[#64748b]">Fra</span>
+                      <span className="text-sm font-semibold text-[#0f172a]">{endpoints.start}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xs text-[#64748b]">Til</span>
+                      <span className="text-sm font-semibold text-[#0f172a]">{endpoints.end}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex gap-4">
-                  <div className="flex-1 p-2 rounded-lg bg-white border border-slate-100">
-                    <p className="text-xs text-[#64748b]">Punktlighet</p>
+                {/* Stats row */}
+                <div className="flex gap-3">
+                  <div className="flex-1 p-2 rounded-lg bg-white border border-slate-100 text-center">
+                    <p className="text-[10px] text-[#64748b] uppercase tracking-wide">Punktlighet</p>
                     <p className={`text-lg font-bold ${punctualityColor.text}`}>{punctuality}%</p>
                   </div>
-                  <div className="flex-1 p-2 rounded-lg bg-white border border-slate-100">
-                    <p className="text-xs text-[#64748b]">Snittforsinkelse</p>
-                    <p className={`text-lg font-bold ${delayColor.text}`}>+{route.avg_delay_minutes.toFixed(1)}m</p>
-                  </div>
-                  <div className="flex-1 p-2 rounded-lg bg-white border border-slate-100">
-                    <p className="text-xs text-[#64748b]">Avganger</p>
+                  <div className="flex-1 p-2 rounded-lg bg-white border border-slate-100 text-center">
+                    <p className="text-[10px] text-[#64748b] uppercase tracking-wide">Avganger</p>
                     <p className="text-lg font-bold text-[#0f172a]">{route.total_trips}</p>
+                  </div>
+                  <div className="flex-1 p-2 rounded-lg bg-white border border-slate-100 text-center">
+                    <p className="text-[10px] text-[#64748b] uppercase tracking-wide">Forsinkede</p>
+                    <p className="text-lg font-bold text-[#ff453a]">{route.total_trips - route.on_time_trips}</p>
                   </div>
                 </div>
               </div>
@@ -280,7 +414,9 @@ function App() {
 
     return (
       <>
-        <div className="px-4 pt-4 pb-2">
+        <SearchBar placeholder="Søk etter stasjon (f.eks. Oslo S, Drammen)..." value={searchQuery} onChange={setSearchQuery} />
+
+        <div className="px-4 pt-2 pb-2">
           <h2 className="text-[#0f172a] text-xl font-bold leading-tight">Alle stasjonspar</h2>
           <p className="text-[#64748b] text-sm">{filteredStations.length} stasjonspar</p>
         </div>
@@ -342,7 +478,9 @@ function App() {
 
     return (
       <>
-        <div className="px-4 pt-4 pb-2">
+        <SearchBar placeholder="Søk i analyse..." value={searchQuery} onChange={setSearchQuery} />
+
+        <div className="px-4 pt-2 pb-2">
           <h2 className="text-[#0f172a] text-xl font-bold leading-tight">Analyse</h2>
         </div>
 
@@ -366,6 +504,112 @@ function App() {
           </div>
         </div>
 
+        {/* Delay Trend Chart */}
+        <div className="px-4 pt-2 pb-2">
+          <h3 className="text-[#0f172a] text-lg font-bold">Forsinkelser per dag</h3>
+          <p className="text-xs text-[#64748b]">Gjennomsnittlig forsinkelse i minutter</p>
+        </div>
+
+        <div className="px-4 pb-4">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            {getDailyChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={getDailyChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#e2e8f0' }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#e2e8f0' }}
+                    unit="m"
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value) => [`${value} min`, 'Snittforsinkelse']}
+                    labelStyle={{ fontWeight: 600, color: '#0f172a' }}
+                  />
+                  <Bar dataKey="avgDelay" fill="#ff9f0a" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[200px] flex items-center justify-center text-[#64748b] text-sm">
+                Ingen data tilgjengelig for valgt periode
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Trips per day Chart */}
+        <div className="px-4 pt-2 pb-2">
+          <h3 className="text-[#0f172a] text-lg font-bold">Avganger per dag</h3>
+          <p className="text-xs text-[#64748b]">Totale og forsinkede avganger</p>
+        </div>
+
+        <div className="px-4 pb-4">
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+            {getDailyChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={getDailyChartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#e2e8f0' }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: '#64748b' }}
+                    tickLine={false}
+                    axisLine={{ stroke: '#e2e8f0' }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                    labelStyle={{ fontWeight: 600, color: '#0f172a' }}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: '12px', color: '#64748b' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="totalTrips"
+                    name="Totale avganger"
+                    stroke="#135bec"
+                    strokeWidth={2}
+                    dot={{ fill: '#135bec', strokeWidth: 0, r: 3 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="delayedTrips"
+                    name="Forsinkede"
+                    stroke="#ff453a"
+                    strokeWidth={2}
+                    dot={{ fill: '#ff453a', strokeWidth: 0, r: 3 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[200px] flex items-center justify-center text-[#64748b] text-sm">
+                Ingen data tilgjengelig for valgt periode
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Worst Performing Routes */}
         <div className="px-4 pt-2 pb-2">
           <h3 className="text-[#0f172a] text-lg font-bold">Dårligst punktlighet</h3>
@@ -382,6 +626,7 @@ function App() {
             .map((route, index) => {
               const punctuality = calculatePunctuality(route.total_trips, route.on_time_trips);
               const punctualityColor = getPunctualityColor(punctuality);
+              const endpoints = getRouteEndpoints(route);
 
               return (
                 <div
@@ -389,7 +634,10 @@ function App() {
                   className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-[#0f172a]">{route.route_id}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-[#0f172a]">{route.route_id}</p>
+                      <span className="text-xs text-[#64748b]">{endpoints.start} → {endpoints.end}</span>
+                    </div>
                     <p className="text-xs text-[#64748b]">{route.total_trips} avganger</p>
                   </div>
                   <div className={`px-3 py-1 rounded-full ${punctualityColor.bg}`}>
@@ -417,6 +665,7 @@ function App() {
             .map((route, index) => {
               const punctuality = calculatePunctuality(route.total_trips, route.on_time_trips);
               const punctualityColor = getPunctualityColor(punctuality);
+              const endpoints = getRouteEndpoints(route);
 
               return (
                 <div
@@ -424,7 +673,10 @@ function App() {
                   className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200"
                 >
                   <div>
-                    <p className="text-sm font-semibold text-[#0f172a]">{route.route_id}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-semibold text-[#0f172a]">{route.route_id}</p>
+                      <span className="text-xs text-[#64748b]">{endpoints.start} → {endpoints.end}</span>
+                    </div>
                     <p className="text-xs text-[#64748b]">{route.total_trips} avganger</p>
                   </div>
                   <div className={`px-3 py-1 rounded-full ${punctualityColor.bg}`}>
@@ -510,60 +762,37 @@ function App() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-lg border-t border-slate-200 pb-safe pt-2">
-        <div className="flex justify-around items-center h-16 max-w-md mx-auto">
-          <button
-            onClick={() => setActiveView('overview')}
-            className="flex flex-col items-center justify-center gap-1 w-16 group"
-          >
-            <span className={`material-symbols-outlined text-2xl transition-all ${
-              activeView === 'overview'
-                ? 'text-[#135bec] scale-110'
-                : 'text-[#94a3b8] group-hover:text-[#135bec] group-hover:scale-110'
-            }`}>dashboard</span>
-            <span className={`text-[10px] font-medium transition-colors ${
-              activeView === 'overview' ? 'text-[#135bec]' : 'text-[#94a3b8] group-hover:text-[#135bec]'
-            }`}>Oversikt</span>
-          </button>
-          <button
-            onClick={() => setActiveView('routes')}
-            className="flex flex-col items-center justify-center gap-1 w-16 group"
-          >
-            <span className={`material-symbols-outlined text-2xl transition-all ${
-              activeView === 'routes'
-                ? 'text-[#135bec] scale-110'
-                : 'text-[#94a3b8] group-hover:text-[#135bec] group-hover:scale-110'
-            }`}>route</span>
-            <span className={`text-[10px] font-medium transition-colors ${
-              activeView === 'routes' ? 'text-[#135bec]' : 'text-[#94a3b8] group-hover:text-[#135bec]'
-            }`}>Ruter</span>
-          </button>
-          <button
-            onClick={() => setActiveView('stations')}
-            className="flex flex-col items-center justify-center gap-1 w-16 group"
-          >
-            <span className={`material-symbols-outlined text-2xl transition-all ${
-              activeView === 'stations'
-                ? 'text-[#135bec] scale-110'
-                : 'text-[#94a3b8] group-hover:text-[#135bec] group-hover:scale-110'
-            }`}>train</span>
-            <span className={`text-[10px] font-medium transition-colors ${
-              activeView === 'stations' ? 'text-[#135bec]' : 'text-[#94a3b8] group-hover:text-[#135bec]'
-            }`}>Stasjoner</span>
-          </button>
-          <button
-            onClick={() => setActiveView('analytics')}
-            className="flex flex-col items-center justify-center gap-1 w-16 group"
-          >
-            <span className={`material-symbols-outlined text-2xl transition-all ${
-              activeView === 'analytics'
-                ? 'text-[#135bec] scale-110'
-                : 'text-[#94a3b8] group-hover:text-[#135bec] group-hover:scale-110'
-            }`}>analytics</span>
-            <span className={`text-[10px] font-medium transition-colors ${
-              activeView === 'analytics' ? 'text-[#135bec]' : 'text-[#94a3b8] group-hover:text-[#135bec]'
-            }`}>Analyse</span>
-          </button>
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 shadow-lg">
+        <div className="max-w-md mx-auto px-4 py-2 pb-safe">
+          <div className="flex bg-slate-100 rounded-xl p-1">
+            {([
+              { id: 'overview', icon: 'dashboard', label: 'Oversikt' },
+              { id: 'routes', icon: 'route', label: 'Ruter' },
+              { id: 'stations', icon: 'train', label: 'Stasjoner' },
+              { id: 'analytics', icon: 'analytics', label: 'Analyse' }
+            ] as const).map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => { setActiveView(tab.id); setSearchQuery(''); }}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-lg transition-all duration-200 ${
+                  activeView === tab.id
+                    ? 'bg-white shadow-sm'
+                    : 'hover:bg-slate-200/50'
+                }`}
+              >
+                <span className={`material-symbols-outlined text-xl transition-colors ${
+                  activeView === tab.id ? 'text-[#135bec]' : 'text-[#64748b]'
+                }`}>
+                  {tab.icon}
+                </span>
+                <span className={`text-[10px] font-semibold transition-colors ${
+                  activeView === tab.id ? 'text-[#135bec]' : 'text-[#64748b]'
+                }`}>
+                  {tab.label}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

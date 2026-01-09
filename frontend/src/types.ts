@@ -19,6 +19,8 @@ export interface RouteStats {
   date: string;
   route_id: string;
   route_name: string;
+  start_station: string;
+  end_station: string;
   avg_delay_minutes: number;
   total_delay_minutes: number;
   delay_count: number;

@@ -31,6 +31,8 @@ interface RouteStat {
   date: string
   route_id: string
   route_name: string
+  start_station: string
+  end_station: string
   avg_delay_minutes: number
   total_delay_minutes: number
   delay_count: number
@@ -69,6 +71,70 @@ interface TrainDeparture {
   region: string
 }
 
+interface LineInfo {
+  id: string
+  name: string
+  publicCode: string
+  startStation: string
+  endStation: string
+}
+
+// Parse start and end stations from line name (e.g., "Kongsberg-Oslo S-Eidsvoll" -> start: Kongsberg, end: Eidsvoll)
+function parseLineEndpoints(lineName: string): { start: string; end: string } {
+  const parts = lineName.split('-').map(p => p.trim())
+  if (parts.length >= 2) {
+    return { start: parts[0], end: parts[parts.length - 1] }
+  }
+  return { start: lineName, end: lineName }
+}
+
+// Fetch line information from Entur API
+async function fetchLineInfo(routeCodes: string[]): Promise<Map<string, LineInfo>> {
+  const lineMap = new Map<string, LineInfo>()
+
+  if (routeCodes.length === 0) return lineMap
+
+  const codesString = routeCodes.map(c => `"${c}"`).join(', ')
+  const query = `{ lines(publicCodes: [${codesString}]) { id name publicCode } }`
+
+  try {
+    const response = await fetch('https://api.entur.io/journey-planner/v3/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'ET-Client-Name': 'norway-train-tracker',
+        'ET-Client-Id': 'norway-train-tracker-1.0'
+      },
+      body: JSON.stringify({ query })
+    })
+
+    if (!response.ok) {
+      console.error('Error fetching line info:', response.status)
+      return lineMap
+    }
+
+    const data = await response.json()
+    const lines = data?.data?.lines || []
+
+    for (const line of lines) {
+      const endpoints = parseLineEndpoints(line.name)
+      lineMap.set(line.publicCode, {
+        id: line.id,
+        name: line.name,
+        publicCode: line.publicCode,
+        startStation: endpoints.start,
+        endStation: endpoints.end
+      })
+    }
+
+    console.log(`Fetched info for ${lineMap.size} lines from Entur API`)
+  } catch (error) {
+    console.error('Error fetching line info:', error)
+  }
+
+  return lineMap
+}
+
 Deno.serve(async (req) => {
   try {
     // Initialize Supabase client
@@ -82,6 +148,9 @@ Deno.serve(async (req) => {
 
     // Get all station IDs for this region
     const stationIds = getStationIds(region.id)
+
+    // Fetch line information from Entur API
+    const lineInfoMap = await fetchLineInfo(region.routeCodes)
 
     const allDepartures: TrainDeparture[] = []
     const allStationStats: StationDelay[] = []
@@ -141,7 +210,7 @@ Deno.serve(async (req) => {
           continue
         }
 
-        const { departures, stationStats, routeStats, hourlyStats } = processGraphQLData(data, region)
+        const { departures, stationStats, routeStats, hourlyStats } = processGraphQLData(data, region, lineInfoMap)
 
         allDepartures.push(...departures)
         allStationStats.push(...stationStats)
@@ -212,7 +281,7 @@ Deno.serve(async (req) => {
   }
 })
 
-function processGraphQLData(data: any, region: RegionConfig): {
+function processGraphQLData(data: any, region: RegionConfig, lineInfoMap: Map<string, LineInfo>): {
   departures: TrainDeparture[],
   stationStats: StationDelay[],
   routeStats: RouteStat[],
@@ -304,15 +373,20 @@ function processGraphQLData(data: any, region: RegionConfig): {
       region: region.id
     })
 
-    // Aggregate route stats
+    // Aggregate route stats - use line info from Entur API if available
+    const lineInfo = lineInfoMap.get(routeCode)
     const routeInfo = getRouteInfo(routeCode, region.id)
-    const routeName = routeInfo?.name || routeCode
+    const routeName = lineInfo?.name || routeInfo?.name || routeCode
+    const startStation = lineInfo?.startStation || ''
+    const endStation = lineInfo?.endStation || ''
 
     if (!routeStatsMap.has(routeCode)) {
       routeStatsMap.set(routeCode, {
         date: currentDate,
         route_id: routeCode,
         route_name: routeName,
+        start_station: startStation,
+        end_station: endStation,
         avg_delay_minutes: delayMinutes,
         total_delay_minutes: Math.max(0, delayMinutes),
         delay_count: delayMinutes > 0 ? 1 : 0,
@@ -468,6 +542,9 @@ async function upsertRouteStat(supabase: any, stat: RouteStat) {
     const { error } = await supabase
       .from('route_stats')
       .update({
+        route_name: stat.route_name, // Update route name from Entur API
+        start_station: stat.start_station,
+        end_station: stat.end_station,
         avg_delay_minutes: avgDelay,
         total_delay_minutes: totalDelay,
         delay_count: delayCount,
