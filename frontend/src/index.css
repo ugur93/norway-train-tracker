@@ -1,31 +1,74 @@
 @import "tailwindcss";
-button:focus,
+
+/* Custom theme configuration for Tailwind CSS v4 */
+@theme {
+  --color-primary: #135bec;
+  --color-primary-dark: #0f4bc4;
+  --color-background-light: #f6f6f8;
+  --color-background-dark: #101622;
+  --color-surface-dark: #1c2333;
+  --color-success: #0bda5e;
+  --color-warning: #ff9f0a;
+  --color-danger: #ff453a;
+
+  --font-family-display: "Public Sans", sans-serif;
+}
+
+body {
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  font-family: "Public Sans", sans-serif;
+  background-color: #f6f6f8;
+  color: #1e293b; /* slate-800 - ensure good contrast */
+}
+
+/* Custom focus styles for accessibility */
 button:focus-visible {
-    outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid #135bec;
+  outline-offset: 2px;
 }
 
-:root {
-    color: #213547;
-    background-color: #ffffff;
-}
-
-a:hover {
-    color: #747bff;
-}
-
+/* Remove default button styles */
 button {
-    background-color: #f9f9f9;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
 }
 
-@media (prefers-color-scheme: light) {
-     :root {
-        color: #213547;
-        background-color: #ffffff;
-    }
-    a:hover {
-        color: #747bff;
-    }
-    button {
-        background-color: #f9f9f9;
-    }
+/* Ensure text has proper contrast in light mode */
+h1, h2, h3, h4, h5, h6, p, span, div {
+  color: inherit;
+}
+
+/* Fix for cards and containers */
+.text-slate-900 {
+  color: #0f172a !important;
+}
+
+.text-slate-700 {
+  color: #334155 !important;
+}
+
+.text-slate-500 {
+  color: #64748b !important;
+}
+
+.text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+/* Dark mode text colors */
+.dark .text-white {
+  color: #ffffff !important;
+}
+
+.dark .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+
+.dark .text-slate-400 {
+  color: #94a3b8 !important;
 }

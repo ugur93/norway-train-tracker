@@ -1,6 +1,16 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from '@supabase/supabase-js'
+import {
+  OSLO_REGION,
+  getStationIds,
+  getStationName,
+  isRegionRoute,
+  extractRouteCode,
+  getRouteInfo,
+  ON_TIME_THRESHOLD_MINUTES,
+  type RegionConfig
+} from './regions.ts'
 
 interface StationDelay {
   date: string
@@ -11,7 +21,10 @@ interface StationDelay {
   avg_delay_minutes: number
   total_delay_minutes: number
   delay_count: number
+  total_trips: number
+  on_time_trips: number
   is_relevant: boolean
+  region: string
 }
 
 interface RouteStat {
@@ -21,9 +34,13 @@ interface RouteStat {
   avg_delay_minutes: number
   total_delay_minutes: number
   delay_count: number
+  total_trips: number
+  on_time_trips: number
+  region: string
 }
 
 interface HourlyStat {
+  date: string
   hour: number
   from_stop: string
   from_stop_name: string
@@ -32,7 +49,24 @@ interface HourlyStat {
   avg_delay_minutes: number
   total_delay_minutes: number
   delay_count: number
+  total_trips: number
+  on_time_trips: number
   is_relevant: boolean
+  region: string
+}
+
+interface TrainDeparture {
+  trip_id: string
+  route_id: string
+  route_code: string
+  station_id: string
+  station_name: string
+  destination: string
+  scheduled_time: string
+  actual_time: string | null
+  delay_minutes: number
+  is_realtime: boolean
+  region: string
 }
 
 Deno.serve(async (req) => {
@@ -43,33 +77,19 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    console.log('Fetching GTFS-RT data from Entur API...')
+    const region = OSLO_REGION
+    console.log(`Fetching train data for ${region.name}...`)
 
-    // Fetch data from all stations on Oslo S <-> Drammen and Oslo S <-> Gardemoen routes
-    const stations = [
-      // Oslo S
-      'NSR:StopPlace:337',  // Oslo S
-      
-      // Oslo S <-> Drammen route
-      'NSR:StopPlace:58366', // Skøyen
-      'NSR:StopPlace:418',   // Lysaker
-      'NSR:StopPlace:456',   // Sandvika
-      'NSR:StopPlace:444',   // Asker
-      'NSR:StopPlace:160',   // Drammen
-      
-      // Oslo S <-> Gardemoen route (via Lillestrøm)
-      'NSR:StopPlace:598',   // Oslo Lufthavn Stasjon
-      'NSR:StopPlace:550',   // Lillestrøm
-      'NSR:StopPlace:58367', // Dal
-      'NSR:StopPlace:600',   // Oslo Lufthavn (Gardermoen)
-    ];
+    // Get all station IDs for this region
+    const stationIds = getStationIds(region.id)
 
-    const allStationStats: StationDelay[] = [];
-    const allRouteStats: RouteStat[] = [];
-    const allHourlyStats: HourlyStat[] = [];
+    const allDepartures: TrainDeparture[] = []
+    const allStationStats: StationDelay[] = []
+    const allRouteStats: RouteStat[] = []
+    const allHourlyStats: HourlyStat[] = []
 
     // Fetch data from each station
-    for (const stationId of stations) {
+    for (const stationId of stationIds) {
       const graphqlQuery = `
         {
           stopPlace(id: "${stationId}") {
@@ -96,7 +116,7 @@ Deno.serve(async (req) => {
             }
           }
         }
-      `;
+      `
 
       try {
         const response = await fetch('https://api.entur.io/journey-planner/v3/graphql', {
@@ -107,187 +127,74 @@ Deno.serve(async (req) => {
             'ET-Client-Id': 'norway-train-tracker-1.0'
           },
           body: JSON.stringify({ query: graphqlQuery })
-        });
+        })
 
         if (!response.ok) {
-          console.error(`Entur API error for ${stationId}: ${response.status}`);
-          continue;
+          console.error(`Entur API error for ${stationId}: ${response.status}`)
+          continue
         }
 
-        const data = await response.json();
-        
-        // Check if the response contains valid data before processing
+        const data = await response.json()
+
         if (!data || !data.data || !data.data.stopPlace) {
-          console.warn(`No valid stopPlace data for ${stationId}, skipping...`);
-          continue;
+          console.warn(`No valid stopPlace data for ${stationId}, skipping...`)
+          continue
         }
-        
-        const { stationStats, routeStats, hourlyStats } = processGraphQLData(data);
-        
-        allStationStats.push(...stationStats);
-        allRouteStats.push(...routeStats);
-        allHourlyStats.push(...hourlyStats);
+
+        const { departures, stationStats, routeStats, hourlyStats } = processGraphQLData(data, region)
+
+        allDepartures.push(...departures)
+        allStationStats.push(...stationStats)
+        allRouteStats.push(...routeStats)
+        allHourlyStats.push(...hourlyStats)
       } catch (error) {
-        console.error(`Error fetching data for ${stationId}:`, error);
+        console.error(`Error fetching data for ${stationId}:`, error)
       }
     }
 
-    console.log(`Total processed: ${allStationStats.length} station stats, ${allRouteStats.length} route stats, ${allHourlyStats.length} hourly stats`)
+    console.log(`Total processed: ${allDepartures.length} departures, ${allStationStats.length} station stats, ${allRouteStats.length} route stats`)
 
-    // Use aggregated data
-    const stationStats = allStationStats;
-    const routeStats = allRouteStats;
-    const hourlyStats = allHourlyStats;
+    // Store raw departures
+    if (allDepartures.length > 0) {
+      const { error } = await supabase
+        .from('train_departures')
+        .insert(allDepartures)
 
-    if (stationStats.length > 0) {
-      // Accumulate daily stats
-      for (const newStat of stationStats) {
-        // Try to update existing
-        const { data: existing } = await supabase
-          .from('daily_stats')
-          .select('*')
-          .eq('date', newStat.date)
-          .eq('from_stop', newStat.from_stop)
-          .eq('to_stop', newStat.to_stop)
-          .single()
-
-        if (existing) {
-          // Update existing
-          const totalCount = existing.delay_count + newStat.delay_count
-          const totalDelay = existing.total_delay_minutes + newStat.total_delay_minutes
-          const avgDelay = totalCount > 0 ? totalDelay / totalCount : 0
-          const { error } = await supabase
-            .from('daily_stats')
-            .update({
-              avg_delay_minutes: avgDelay,
-              total_delay_minutes: totalDelay,
-              delay_count: totalCount,
-              is_relevant: existing.is_relevant || newStat.is_relevant
-            })
-            .eq('date', newStat.date)
-            .eq('from_stop', newStat.from_stop)
-            .eq('to_stop', newStat.to_stop)
-
-          if (error) {
-            console.error('Database error updating daily stats:', error)
-            throw error
-          }
-        } else {
-          // Insert new
-          const { error } = await supabase
-            .from('daily_stats')
-            .insert(newStat)
-
-          if (error) {
-            console.error('Database error inserting daily stats:', error)
-            throw error
-          }
-        }
+      if (error) {
+        console.error('Error inserting departures:', error)
+      } else {
+        console.log(`Inserted ${allDepartures.length} departures`)
       }
-
-      console.log(`Accumulated ${stationStats.length} station records into daily_stats`)
     }
 
-    if (routeStats.length > 0) {
-      // Accumulate route stats
-      for (const newStat of routeStats) {
-        // Try to update existing
-        const { data: existing } = await supabase
-          .from('route_stats')
-          .select('*')
-          .eq('date', newStat.date)
-          .eq('route_id', newStat.route_id)
-          .single()
-
-        if (existing) {
-          // Update existing
-          const totalCount = existing.delay_count + newStat.delay_count
-          const totalDelay = existing.total_delay_minutes + newStat.total_delay_minutes
-          const avgDelay = totalCount > 0 ? totalDelay / totalCount : 0
-          const { error } = await supabase
-            .from('route_stats')
-            .update({
-              avg_delay_minutes: avgDelay,
-              total_delay_minutes: totalDelay,
-              delay_count: totalCount
-            })
-            .eq('date', newStat.date)
-            .eq('route_id', newStat.route_id)
-
-          if (error) {
-            console.error('Database error updating route stats:', error)
-            throw error
-          }
-        } else {
-          // Insert new
-          const { error } = await supabase
-            .from('route_stats')
-            .insert(newStat)
-
-          if (error) {
-            console.error('Database error inserting route stats:', error)
-            throw error
-          }
-        }
-      }
-
-      console.log(`Accumulated ${routeStats.length} route records into route_stats`)
+    // Aggregate and store daily stats
+    const aggregatedStationStats = aggregateStationStats(allStationStats)
+    for (const stat of aggregatedStationStats) {
+      await upsertDailyStat(supabase, stat)
     }
+    console.log(`Processed ${aggregatedStationStats.length} daily station stats`)
 
-    if (hourlyStats.length > 0) {
-      // Accumulate hourly stats
-      for (const newStat of hourlyStats) {
-        // Try to update existing
-        const { data: existing } = await supabase
-          .from('hourly_stats')
-          .select('*')
-          .eq('hour', newStat.hour)
-          .eq('from_stop', newStat.from_stop)
-          .eq('to_stop', newStat.to_stop)
-          .single()
-
-        if (existing) {
-          // Update existing
-          const totalCount = existing.delay_count + newStat.delay_count
-          const totalDelay = existing.total_delay_minutes + newStat.total_delay_minutes
-          const avgDelay = totalCount > 0 ? totalDelay / totalCount : 0
-          const { error } = await supabase
-            .from('hourly_stats')
-            .update({
-              avg_delay_minutes: avgDelay,
-              total_delay_minutes: totalDelay,
-              delay_count: totalCount,
-              is_relevant: existing.is_relevant || newStat.is_relevant
-            })
-            .eq('hour', newStat.hour)
-            .eq('from_stop', newStat.from_stop)
-            .eq('to_stop', newStat.to_stop)
-
-          if (error) {
-            console.error('Database error updating hourly stats:', error)
-            throw error
-          }
-        } else {
-          // Insert new
-          const { error } = await supabase
-            .from('hourly_stats')
-            .insert(newStat)
-
-          if (error) {
-            console.error('Database error inserting hourly stats:', error)
-            throw error
-          }
-        }
-      }
-
-      console.log(`Accumulated ${hourlyStats.length} hourly records into hourly_stats`)
+    // Aggregate and store route stats
+    const aggregatedRouteStats = aggregateRouteStats(allRouteStats)
+    for (const stat of aggregatedRouteStats) {
+      await upsertRouteStat(supabase, stat)
     }
+    console.log(`Processed ${aggregatedRouteStats.length} route stats`)
+
+    // Aggregate and store hourly stats
+    const aggregatedHourlyStats = aggregateHourlyStats(allHourlyStats)
+    for (const stat of aggregatedHourlyStats) {
+      await upsertHourlyStat(supabase, stat)
+    }
+    console.log(`Processed ${aggregatedHourlyStats.length} hourly stats`)
 
     return new Response(JSON.stringify({
       success: true,
-      inserted_stations: stationStats.length,
-      inserted_routes: routeStats.length,
-      inserted_hourly: hourlyStats.length,
+      region: region.id,
+      departures_count: allDepartures.length,
+      station_stats_count: aggregatedStationStats.length,
+      route_stats_count: aggregatedRouteStats.length,
+      hourly_stats_count: aggregatedHourlyStats.length,
       timestamp: new Date().toISOString()
     }), {
       headers: { 'Content-Type': 'application/json' }
@@ -305,67 +212,66 @@ Deno.serve(async (req) => {
   }
 })
 
-function processGraphQLData(data: any): { stationStats: StationDelay[], routeStats: RouteStat[], hourlyStats: HourlyStat[] } {
+function processGraphQLData(data: any, region: RegionConfig): {
+  departures: TrainDeparture[],
+  stationStats: StationDelay[],
+  routeStats: RouteStat[],
+  hourlyStats: HourlyStat[]
+} {
+  const departures: TrainDeparture[] = []
   const stationStats: StationDelay[] = []
   const hourlyStats: HourlyStat[] = []
   const routeStatsMap = new Map<string, RouteStat>()
   const currentDate = new Date().toISOString().split('T')[0]
   const currentHour = new Date().getHours()
 
-  console.log('Processing GraphQL data...');
+  const stopPlace = data.data.stopPlace
+  const calls = stopPlace.estimatedCalls || []
 
-  // Check if we have valid data
-  if (!data || !data.data || !data.data.stopPlace) {
-    console.error('Invalid GraphQL response:', JSON.stringify(data).substring(0, 500));
-    return { stationStats: [], routeStats: [], hourlyStats: [] };
-  }
+  console.log(`Processing ${calls.length} estimated calls from ${stopPlace.name}`)
 
-  const stopPlace = data.data.stopPlace;
-  const calls = stopPlace.estimatedCalls || [];
-
-  console.log(`Processing ${calls.length} estimated calls from ${stopPlace.name}`);
-
-  // Oslo region relevant station pairs
-  const relevantPairs = [
-    ['Asker', 'Oslo S'],
-    ['Oslo S', 'Asker'],
-    ['Sandvika', 'Asker'],
-    ['Asker', 'Sandvika'],
-    ['Oslo S', 'Lillestrøm'],
-    ['Lillestrøm', 'Oslo S'],
-    ['Oslo S', 'Oslo Lufthavn'],
-    ['Oslo Lufthavn', 'Oslo S']
-  ]
-
-  // Process each estimated call
+  // Process each estimated call - ALL trains, not just delayed ones
   for (const call of calls) {
-    if (!call.realtime || !call.aimedDepartureTime || !call.expectedDepartureTime) continue;
-    if (!call.serviceJourney || !call.serviceJourney.line) continue;
+    if (!call.aimedDepartureTime) continue
+    if (!call.serviceJourney || !call.serviceJourney.line) continue
 
-    const routeId = call.serviceJourney.line.publicCode || call.serviceJourney.line.id;
-    
-    // Only process Oslo region routes (trains)
-    if (!isOsloRegionRoute(routeId)) continue;
+    const routeId = call.serviceJourney.line.id || ''
+    const routeCode = call.serviceJourney.line.publicCode || extractRouteCode(routeId)
 
-    // Calculate delay
-    const aimedTime = new Date(call.aimedDepartureTime).getTime();
-    const expectedTime = new Date(call.expectedDepartureTime).getTime();
-    const delaySeconds = (expectedTime - aimedTime) / 1000;
-    const delayMinutes = delaySeconds / 60;
+    // Only process routes for this region
+    if (!isRegionRoute(routeCode, region.id)) continue
 
-    // Only include significant delays (> 0 minutes)
-    if (delayMinutes <= 0) continue;
+    // Calculate delay (can be negative for early, 0 for on-time, positive for late)
+    const aimedTime = new Date(call.aimedDepartureTime).getTime()
+    const expectedTime = call.expectedDepartureTime
+      ? new Date(call.expectedDepartureTime).getTime()
+      : aimedTime  // If no expected time, assume on-time
+    const delayMinutes = (expectedTime - aimedTime) / 60000
 
-    const fromStopName = stopPlace.name;
-    const toStopName = call.destinationDisplay?.frontText || 'Unknown';
-    const fromStopId = stopPlace.id;
-    const toStopId = call.quay?.id || 'unknown';
+    const isRealtime = call.realtime === true
+    const isOnTime = delayMinutes <= ON_TIME_THRESHOLD_MINUTES
 
-    // Check if this pair is relevant
-    const isRelevant = relevantPairs.some(([from, to]) =>
-      from === fromStopName && to === toStopName
-    );
+    const fromStopName = stopPlace.name
+    const toStopName = call.destinationDisplay?.frontText || 'Unknown'
+    const fromStopId = stopPlace.id
+    const toStopId = call.quay?.id || 'unknown'
 
+    // Store raw departure
+    departures.push({
+      trip_id: call.serviceJourney.id || '',
+      route_id: routeId,
+      route_code: routeCode,
+      station_id: fromStopId,
+      station_name: fromStopName,
+      destination: toStopName,
+      scheduled_time: call.aimedDepartureTime,
+      actual_time: call.expectedDepartureTime || null,
+      delay_minutes: delayMinutes,
+      is_realtime: isRealtime,
+      region: region.id
+    })
+
+    // Create station stat entry (for all trains)
     stationStats.push({
       date: currentDate,
       from_stop: fromStopId,
@@ -373,306 +279,254 @@ function processGraphQLData(data: any): { stationStats: StationDelay[], routeSta
       to_stop: toStopId,
       to_stop_name: toStopName,
       avg_delay_minutes: delayMinutes,
-      total_delay_minutes: delayMinutes,
-      delay_count: 1,
-      is_relevant: isRelevant
-    });
+      total_delay_minutes: Math.max(0, delayMinutes), // Only count positive delays in total
+      delay_count: delayMinutes > 0 ? 1 : 0,
+      total_trips: 1,
+      on_time_trips: isOnTime ? 1 : 0,
+      is_relevant: true,
+      region: region.id
+    })
 
+    // Create hourly stat entry
     hourlyStats.push({
+      date: currentDate,
       hour: currentHour,
       from_stop: fromStopId,
       from_stop_name: fromStopName,
       to_stop: toStopId,
       to_stop_name: toStopName,
       avg_delay_minutes: delayMinutes,
-      total_delay_minutes: delayMinutes,
-      delay_count: 1,
-      is_relevant: isRelevant
-    });
+      total_delay_minutes: Math.max(0, delayMinutes),
+      delay_count: delayMinutes > 0 ? 1 : 0,
+      total_trips: 1,
+      on_time_trips: isOnTime ? 1 : 0,
+      is_relevant: true,
+      region: region.id
+    })
 
     // Aggregate route stats
-    if (!routeStatsMap.has(routeId)) {
-      routeStatsMap.set(routeId, {
+    const routeInfo = getRouteInfo(routeCode, region.id)
+    const routeName = routeInfo?.name || routeCode
+
+    if (!routeStatsMap.has(routeCode)) {
+      routeStatsMap.set(routeCode, {
         date: currentDate,
-        route_id: routeId,
-        route_name: getRouteName(routeId),
+        route_id: routeCode,
+        route_name: routeName,
         avg_delay_minutes: delayMinutes,
-        total_delay_minutes: delayMinutes,
-        delay_count: 1
-      });
+        total_delay_minutes: Math.max(0, delayMinutes),
+        delay_count: delayMinutes > 0 ? 1 : 0,
+        total_trips: 1,
+        on_time_trips: isOnTime ? 1 : 0,
+        region: region.id
+      })
     } else {
-      const existing = routeStatsMap.get(routeId)!;
-      existing.avg_delay_minutes = (existing.avg_delay_minutes * existing.delay_count + delayMinutes) / (existing.delay_count + 1);
-      existing.total_delay_minutes += delayMinutes;
-      existing.delay_count += 1;
+      const existing = routeStatsMap.get(routeCode)!
+      existing.total_trips += 1
+      existing.total_delay_minutes += Math.max(0, delayMinutes)
+      existing.delay_count += delayMinutes > 0 ? 1 : 0
+      existing.on_time_trips += isOnTime ? 1 : 0
+      existing.avg_delay_minutes = existing.total_delay_minutes / existing.delay_count || 0
     }
   }
-
-  // Aggregate by station pair
-  const aggregatedStationStats = aggregateStats(stationStats) as StationDelay[];
-  const aggregatedHourlyStats = aggregateStats(hourlyStats) as HourlyStat[];
-  const routeStats = Array.from(routeStatsMap.values());
-
-  console.log(`Processed: ${aggregatedStationStats.length} station pairs, ${routeStats.length} routes, ${aggregatedHourlyStats.length} hourly stats`);
-
-  return { stationStats: aggregatedStationStats, routeStats, hourlyStats: aggregatedHourlyStats };
-}
-
-function processGtfsData(feed: any): { stationStats: StationDelay[], routeStats: RouteStat[], hourlyStats: HourlyStat[] } {
-  const stationStats: StationDelay[] = []
-  const hourlyStats: HourlyStat[] = []
-  const routeStatsMap = new Map<string, RouteStat>()
-  const currentDate = new Date().toISOString().split('T')[0]
-  const currentHour = new Date().getHours()
-
-  // Oslo region relevant station pairs (from your Python config)
-  const relevantPairs = [
-    ['Asker', 'Oslo S'],
-    ['Oslo S', 'Asker'],
-    ['Sandvika', 'Asker'],
-    ['Asker', 'Sandvika'],
-    ['Oslo S', 'Lillestrøm'],
-    ['Lillestrøm', 'Oslo S'],
-    ['Oslo S', 'Oslo Lufthavn'],
-    ['Oslo Lufthavn', 'Oslo S']
-  ]
-
-  // Process each trip update
-  for (const entity of feed.entity) {
-    if (!entity.tripUpdate) continue
-
-    const tripUpdate = entity.tripUpdate
-    const routeId = tripUpdate.trip?.routeId || 'unknown'
-
-    // Only process Oslo region routes
-    if (!isOsloRegionRoute(routeId)) continue
-
-    // Process stop time updates
-    const stopUpdates = tripUpdate.stopTimeUpdate
-    if (!stopUpdates || stopUpdates.length < 2) continue
-
-    for (let i = 0; i < stopUpdates.length - 1; i++) {
-      const fromStop = stopUpdates[i]
-      const toStop = stopUpdates[i + 1]
-
-      if (!fromStop.stopId || !toStop.stopId) continue
-      if (!fromStop.departure || !toStop.arrival) continue
-
-      // Calculate delay
-      const scheduledDeparture = fromStop.departure.time
-      const actualDeparture = fromStop.departure.delay ? scheduledDeparture + fromStop.departure.delay : scheduledDeparture
-
-      const delaySeconds = actualDeparture - scheduledDeparture
-      const delayMinutes = delaySeconds / 60
-
-      // Only include significant delays
-      if (delayMinutes <= 0) continue
-
-      // Clean stop names (remove platform info)
-      const fromStopName = getStopName(fromStop.stopId)
-      const toStopName = getStopName(toStop.stopId)
-
-      // Check if this pair is relevant
-      const isRelevant = relevantPairs.some(([from, to]) =>
-        from === fromStopName && to === toStopName
-      )
-
-      stationStats.push({
-        date: currentDate,
-        from_stop: fromStop.stopId,
-        from_stop_name: fromStopName,
-        to_stop: toStop.stopId,
-        to_stop_name: toStopName,
-        avg_delay_minutes: delayMinutes,
-        total_delay_minutes: delayMinutes,
-        delay_count: 1,
-        is_relevant: isRelevant
-      })
-
-      hourlyStats.push({
-        hour: currentHour,
-        from_stop: fromStop.stopId,
-        from_stop_name: fromStopName,
-        to_stop: toStop.stopId,
-        to_stop_name: toStopName,
-        avg_delay_minutes: delayMinutes,
-        total_delay_minutes: delayMinutes,
-        delay_count: 1,
-        is_relevant: isRelevant
-      })
-
-      // Aggregate route stats
-      const routeKey = routeId
-      if (!routeStatsMap.has(routeKey)) {
-        routeStatsMap.set(routeKey, {
-          date: currentDate,
-          route_id: routeId,
-          route_name: getRouteName(routeId),
-          avg_delay_minutes: delayMinutes,
-          total_delay_minutes: delayMinutes,
-          delay_count: 1
-        })
-      } else {
-        const existing = routeStatsMap.get(routeKey)!
-        existing.avg_delay_minutes = (existing.avg_delay_minutes * existing.delay_count + delayMinutes) / (existing.delay_count + 1)
-        existing.total_delay_minutes += delayMinutes
-        existing.delay_count += 1
-      }
-    }
-  }
-
-  // Aggregate by station pair (similar to Python groupby)
-  const aggregatedStationStats = aggregateStats(stationStats)
-  const aggregatedHourlyStats = aggregateStats(hourlyStats)
 
   const routeStats = Array.from(routeStatsMap.values())
-
-  return { stationStats: aggregatedStationStats, routeStats, hourlyStats: aggregatedHourlyStats }
+  return { departures, stationStats, routeStats, hourlyStats }
 }
 
-function aggregateStats(stats: StationDelay[] | HourlyStat[]): StationDelay[] | HourlyStat[] {
-  if (stats.length === 0) return stats
+function aggregateStationStats(stats: StationDelay[]): StationDelay[] {
+  if (stats.length === 0) return []
 
-  const grouped = new Map<string, (StationDelay | HourlyStat)[]>()
+  const grouped = new Map<string, StationDelay>()
 
-  // Group by key
   for (const stat of stats) {
-    let key: string
-    if ('date' in stat) {
-      // Station stats - use stop IDs for grouping
-      key = `${stat.date}_${stat.from_stop}_${stat.to_stop}`
-    } else {
-      // Hourly stats - use stop IDs for grouping
-      key = `${stat.hour}_${stat.from_stop}_${stat.to_stop}`
-    }
+    const key = `${stat.date}_${stat.from_stop}_${stat.to_stop}`
 
     if (!grouped.has(key)) {
-      grouped.set(key, [])
-    }
-    grouped.get(key)!.push(stat)
-  }
-
-  // Aggregate each group
-  const result: (StationDelay | HourlyStat)[] = []
-  for (const [key, group] of grouped) {
-    if (group.length === 1) {
-      result.push(group[0])
-      continue
-    }
-
-    // Aggregate multiple entries
-    const first = group[0]
-    let totalDelay = 0
-    let totalCount = 0
-    let isRelevant = false
-
-    for (const stat of group) {
-      totalDelay += stat.total_delay_minutes
-      totalCount += stat.delay_count
-      if ('is_relevant' in stat && stat.is_relevant) isRelevant = true
-    }
-
-    const avgDelay = totalCount > 0 ? totalDelay / totalCount : 0
-
-    if ('date' in first) {
-      // StationDelay
-      result.push({
-        ...first,
-        avg_delay_minutes: avgDelay,
-        total_delay_minutes: totalDelay,
-        delay_count: totalCount,
-        is_relevant: isRelevant
-      } as StationDelay)
+      grouped.set(key, { ...stat })
     } else {
-      // HourlyStat
-      result.push({
-        ...first,
-        avg_delay_minutes: avgDelay,
-        total_delay_minutes: totalDelay,
-        delay_count: totalCount,
-        is_relevant: isRelevant
-      } as HourlyStat)
+      const existing = grouped.get(key)!
+      existing.total_trips += stat.total_trips
+      existing.on_time_trips += stat.on_time_trips
+      existing.total_delay_minutes += stat.total_delay_minutes
+      existing.delay_count += stat.delay_count
+      existing.avg_delay_minutes = existing.delay_count > 0
+        ? existing.total_delay_minutes / existing.delay_count
+        : 0
     }
   }
 
-  return result as StationDelay[] | HourlyStat[]
+  return Array.from(grouped.values())
 }
 
-function isOsloRegionRoute(routeId: string): boolean {
-  // Check if route is in Oslo region - match all local (L) and regional (R) routes plus airport trains
-  const osloRoutes = [
-    'L1', 'L2', 'L12', 'L13', 'L14', 'L21', 'L22',
-    'R10', 'R11', 'R12', 'R13', 'R14', 'R20', 'R21', 'R22', 'R23',
-    'FLY', 'Airport', 'Flytoget'
-  ]
-  
-  // Check if routeId contains any of our target routes
-  return osloRoutes.some(route => routeId.includes(route)) || 
-         routeId.startsWith('NSB:Line:') || 
-         routeId.startsWith('VYG:Line:') ||
-         routeId.startsWith('FLT:Line:')
+function aggregateRouteStats(stats: RouteStat[]): RouteStat[] {
+  if (stats.length === 0) return []
+
+  const grouped = new Map<string, RouteStat>()
+
+  for (const stat of stats) {
+    const key = `${stat.date}_${stat.route_id}`
+
+    if (!grouped.has(key)) {
+      grouped.set(key, { ...stat })
+    } else {
+      const existing = grouped.get(key)!
+      existing.total_trips += stat.total_trips
+      existing.on_time_trips += stat.on_time_trips
+      existing.total_delay_minutes += stat.total_delay_minutes
+      existing.delay_count += stat.delay_count
+      existing.avg_delay_minutes = existing.delay_count > 0
+        ? existing.total_delay_minutes / existing.delay_count
+        : 0
+    }
+  }
+
+  return Array.from(grouped.values())
 }
 
-function cleanStopName(stopId: string): string {
-  // Remove platform and other details from stop ID
-  // Example: "NSR:StopPlace:337" -> "Oslo S" (would need mapping)
-  // For now, return as-is (you'll need to implement proper mapping)
-  return stopId.split(':').pop() || stopId
+function aggregateHourlyStats(stats: HourlyStat[]): HourlyStat[] {
+  if (stats.length === 0) return []
+
+  const grouped = new Map<string, HourlyStat>()
+
+  for (const stat of stats) {
+    const key = `${stat.date}_${stat.hour}_${stat.from_stop}_${stat.to_stop}`
+
+    if (!grouped.has(key)) {
+      grouped.set(key, { ...stat })
+    } else {
+      const existing = grouped.get(key)!
+      existing.total_trips += stat.total_trips
+      existing.on_time_trips += stat.on_time_trips
+      existing.total_delay_minutes += stat.total_delay_minutes
+      existing.delay_count += stat.delay_count
+      existing.avg_delay_minutes = existing.delay_count > 0
+        ? existing.total_delay_minutes / existing.delay_count
+        : 0
+    }
+  }
+
+  return Array.from(grouped.values())
 }
 
-function getRouteName(routeId: string): string {
-  // Extract short name from route ID
-  // Examples: "FLT:Line:FLY1" -> "FLY1", "R10" -> "R10"
-  const parts = routeId.split(':');
-  return parts[parts.length - 1] || routeId;
+async function upsertDailyStat(supabase: any, stat: StationDelay) {
+  const { data: existing } = await supabase
+    .from('daily_stats')
+    .select('*')
+    .eq('date', stat.date)
+    .eq('from_stop', stat.from_stop)
+    .eq('to_stop', stat.to_stop)
+    .single()
+
+  if (existing) {
+    const totalTrips = existing.total_trips + stat.total_trips
+    const onTimeTrips = existing.on_time_trips + stat.on_time_trips
+    const totalDelay = existing.total_delay_minutes + stat.total_delay_minutes
+    const delayCount = existing.delay_count + stat.delay_count
+    const avgDelay = delayCount > 0 ? totalDelay / delayCount : 0
+
+    const { error } = await supabase
+      .from('daily_stats')
+      .update({
+        avg_delay_minutes: avgDelay,
+        total_delay_minutes: totalDelay,
+        delay_count: delayCount,
+        total_trips: totalTrips,
+        on_time_trips: onTimeTrips,
+        is_relevant: existing.is_relevant || stat.is_relevant,
+        region: stat.region
+      })
+      .eq('date', stat.date)
+      .eq('from_stop', stat.from_stop)
+      .eq('to_stop', stat.to_stop)
+
+    if (error) console.error('Error updating daily stat:', error)
+  } else {
+    const { error } = await supabase
+      .from('daily_stats')
+      .insert(stat)
+
+    if (error) console.error('Error inserting daily stat:', error)
+  }
 }
 
-// Stop ID to name mapping (comprehensive Oslo region stations)
-const stopNameMap: { [key: string]: string } = {
-  // Major Oslo stations
-  'NSR:StopPlace:337': 'Oslo S',
-  
-  // Oslo S <-> Drammen route
-  'NSR:StopPlace:58366': 'Skøyen',
-  'NSR:StopPlace:418': 'Lysaker',
-  'NSR:StopPlace:456': 'Sandvika',
-  'NSR:StopPlace:444': 'Asker',
-  'NSR:StopPlace:160': 'Drammen',
-  
-  // Oslo S <-> Gardemoen route
-  'NSR:StopPlace:598': 'Oslo Lufthavn Stasjon',
-  'NSR:StopPlace:550': 'Lillestrøm',
-  'NSR:StopPlace:58367': 'Dal',
-  'NSR:StopPlace:600': 'Oslo Lufthavn',
-  
-  // Other major stations
-  'NSR:StopPlace:588': 'Ski',
-  'NSR:StopPlace:220': 'Halden',
-  'NSR:StopPlace:416': 'Moss',
-  'NSR:StopPlace:548': 'Sarpsborg',
-  'NSR:StopPlace:196': 'Fredrikstad',
-  'NSR:StopPlace:596': 'Spikkestad',
-  'NSR:StopPlace:165': 'Eidsvoll',
-  'NSR:StopPlace:425': 'Mysen',
-  'NSR:StopPlace:514': 'Rakkestad',
-  
-  // Buskerud region
-  'NSR:StopPlace:313': 'Kongsberg',
-  'NSR:StopPlace:133': 'Dal',
-  
-  // Hedmark region
-  'NSR:StopPlace:315': 'Kongsvinger',
-  
-  // Oppland region
-  'NSR:StopPlace:367': 'Lillehammer',
-  
-  // Telemark region
-  'NSR:StopPlace:590': 'Skien',
-  
-  // International (may not have NSR IDs, but included for completeness)
-  'NSR:StopPlace:999': 'Göteborg'  // Placeholder - may need different ID format
-};
+async function upsertRouteStat(supabase: any, stat: RouteStat) {
+  const { data: existing } = await supabase
+    .from('route_stats')
+    .select('*')
+    .eq('date', stat.date)
+    .eq('route_id', stat.route_id)
+    .single()
 
-function getStopName(stopId: string): string {
-  return stopNameMap[stopId] || cleanStopName(stopId);
+  if (existing) {
+    const totalTrips = existing.total_trips + stat.total_trips
+    const onTimeTrips = existing.on_time_trips + stat.on_time_trips
+    const totalDelay = existing.total_delay_minutes + stat.total_delay_minutes
+    const delayCount = existing.delay_count + stat.delay_count
+    const avgDelay = delayCount > 0 ? totalDelay / delayCount : 0
+
+    const { error } = await supabase
+      .from('route_stats')
+      .update({
+        avg_delay_minutes: avgDelay,
+        total_delay_minutes: totalDelay,
+        delay_count: delayCount,
+        total_trips: totalTrips,
+        on_time_trips: onTimeTrips,
+        region: stat.region
+      })
+      .eq('date', stat.date)
+      .eq('route_id', stat.route_id)
+
+    if (error) console.error('Error updating route stat:', error)
+  } else {
+    const { error } = await supabase
+      .from('route_stats')
+      .insert(stat)
+
+    if (error) console.error('Error inserting route stat:', error)
+  }
+}
+
+async function upsertHourlyStat(supabase: any, stat: HourlyStat) {
+  const { data: existing } = await supabase
+    .from('hourly_stats')
+    .select('*')
+    .eq('date', stat.date)
+    .eq('hour', stat.hour)
+    .eq('from_stop', stat.from_stop)
+    .eq('to_stop', stat.to_stop)
+    .single()
+
+  if (existing) {
+    const totalTrips = existing.total_trips + stat.total_trips
+    const onTimeTrips = existing.on_time_trips + stat.on_time_trips
+    const totalDelay = existing.total_delay_minutes + stat.total_delay_minutes
+    const delayCount = existing.delay_count + stat.delay_count
+    const avgDelay = delayCount > 0 ? totalDelay / delayCount : 0
+
+    const { error } = await supabase
+      .from('hourly_stats')
+      .update({
+        avg_delay_minutes: avgDelay,
+        total_delay_minutes: totalDelay,
+        delay_count: delayCount,
+        total_trips: totalTrips,
+        on_time_trips: onTimeTrips,
+        is_relevant: existing.is_relevant || stat.is_relevant,
+        region: stat.region
+      })
+      .eq('date', stat.date)
+      .eq('hour', stat.hour)
+      .eq('from_stop', stat.from_stop)
+      .eq('to_stop', stat.to_stop)
+
+    if (error) console.error('Error updating hourly stat:', error)
+  } else {
+    const { error } = await supabase
+      .from('hourly_stats')
+      .insert(stat)
+
+    if (error) console.error('Error inserting hourly stat:', error)
+  }
 }
